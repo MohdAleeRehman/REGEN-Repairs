@@ -1,0 +1,423 @@
+import { defineStore } from 'pinia';
+import api from '../services/api';
+import { useDeviceStore } from './deviceStore';
+
+export const useRepairStore = defineStore('repair', {
+  state: () => ({
+    formData: {
+      device_id: null,
+      problems: [],
+      battery_option: null,
+      display_option: null,
+      battery_add_on: false,
+      bundle_battery_option: null,
+      earpiece_option: null,
+      speaker_option: null,
+      charging_issue_type: null,
+      dead_phone_issue_type: null,
+      other_problem_description: '',
+      service_history: null,
+      previous_repair_by: null,
+      previous_repair_details: '',
+      previous_repair_other_details: '',
+      full_name: '',
+      whatsapp_number: '',
+      is_from_lahore: null,
+      needs_pickup_delivery: false,
+      address: '',
+      agreed_to_terms: false,
+      calculated_price: 0,
+    },
+    isLoading: false,
+    error: null,
+    currentStep: 1,
+    totalSteps: 5,
+    submissionId: null,
+    submissions: [], // for admin view
+    currentSubmission: null, // For viewing a single submission
+    preserveFormState: false, // Flag to preserve form state when navigating to Terms
+
+    // Pricing data will be fetched from API
+    pricingData: {}
+  }),
+  
+  actions: {
+    // Fetch pricing data from API
+    async fetchPricingData() {
+      this.isLoading = true;
+      this.error = null;
+      
+      try {
+        const response = await api.repairs.getPricingData();
+        this.pricingData = response.data;
+        return response.data;
+      } catch (error) {
+        this.error = error.message || 'Failed to fetch pricing data';
+        console.error('Error fetching pricing data:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    
+    updateFormField(field, value) {
+      this.formData[field] = value;
+    },
+    
+    selectProblem(problem) {
+      if (!this.formData.problems.includes(problem)) {
+        this.formData.problems.push(problem);
+      }
+    },
+    
+    removeProblem(problem) {
+      this.formData.problems = this.formData.problems.filter(p => p !== problem);
+    },
+    
+    nextStep() {
+      if (this.currentStep < this.totalSteps) {
+        this.currentStep++;
+      }
+    },
+    
+    previousStep() {
+      if (this.currentStep > 1) {
+        this.currentStep--;
+      }
+    },
+    
+    calculatePrice() {
+      let price = 0;
+      
+      // Get the device model from the device store
+      const deviceStore = useDeviceStore();
+      const selectedDevice = deviceStore.getDeviceById(this.formData.device_id);
+      
+      if (!selectedDevice) {
+        console.warn('No device selected, cannot calculate price');
+        return 0;
+      }
+      
+      const deviceModel = selectedDevice.model;
+      const devicePricing = this.pricingData[deviceModel];
+      
+      if (!devicePricing) {
+        console.warn(`No pricing data available for ${deviceModel}`);
+        return 0;
+      }
+      
+      // Calculate price based on selected problems and options
+      this.formData.problems.forEach(problem => {
+        switch (problem) {
+          case 'battery':
+            if (this.formData.battery_option && devicePricing.battery) {
+              // Handle battery pricing
+              const batteryPrice = devicePricing.battery[this.formData.battery_option];
+              if (batteryPrice) {
+                price += batteryPrice;
+              }
+            }
+            break;
+            
+          case 'display':
+            if (this.formData.display_option && devicePricing.display) {
+              // Handle display pricing
+              const displayPrice = devicePricing.display[this.formData.display_option];
+              if (displayPrice) {
+                price += displayPrice;
+                
+                // If battery_add_on and not already fixing battery separately
+                if (this.formData.battery_add_on && 
+                    !this.formData.problems.includes('battery') && 
+                    devicePricing.battery) {
+                  // Check if battery_option is explicitly selected for the bundled battery
+                  const batteryOption = this.formData.bundle_battery_option || 'Aftermarket';
+                  const batteryPrice = devicePricing.battery[batteryOption];
+                  if (batteryPrice) {
+                    // Add battery price with 10% discount when bundled with display
+                    price += Math.floor(batteryPrice * 0.9);
+                  }
+                }
+              }
+            }
+            break;
+            
+          case 'earpiece':
+            if (this.formData.earpiece_option && devicePricing.earpiece) {
+              // Handle earpiece pricing based on selected option
+              const earpiecePrice = devicePricing.earpiece[this.formData.earpiece_option];
+              if (earpiecePrice) {
+                price += earpiecePrice;
+              
+                // If battery_add_on and not already fixing battery separately
+                if (this.formData.battery_add_on && 
+                    !this.formData.problems.includes('battery') && 
+                    devicePricing.battery) {
+                  // Check if battery_option is explicitly selected for the bundled battery
+                  const batteryOption = this.formData.bundle_battery_option || 'Aftermarket';
+                  const batteryPrice = devicePricing.battery[batteryOption];
+                  if (batteryPrice) {
+                    // Add battery price with 10% discount when bundled with earpiece
+                    price += Math.floor(batteryPrice * 0.9);
+                  }
+                }
+              }
+            }
+            break;
+            
+          case 'speaker':
+            if (this.formData.speaker_option && devicePricing.speaker) {
+              // Handle speaker pricing based on selected option
+              const speakerPrice = devicePricing.speaker[this.formData.speaker_option];
+              if (speakerPrice) {
+                price += speakerPrice;
+              
+                // If battery_add_on and not already fixing battery separately
+                if (this.formData.battery_add_on && 
+                    !this.formData.problems.includes('battery') && 
+                    devicePricing.battery) {
+                  // Check if battery_option is explicitly selected for the bundled battery
+                  const batteryOption = this.formData.bundle_battery_option || 'Aftermarket';
+                  const batteryPrice = devicePricing.battery[batteryOption];
+                  if (batteryPrice) {
+                    // Add battery price with 10% discount when bundled with speaker
+                    price += Math.floor(batteryPrice * 0.9);
+                  }
+                }
+              }
+            }
+            break;
+            
+          case 'charging':
+          case 'dead':
+          case 'other':
+            // These require diagnostics - add a base diagnostic fee if only these problems are selected
+            // Only add diagnostic fee if no parts replacement is already included
+            break;
+        }
+      });
+      
+      // Add delivery charge if pickup/delivery is requested
+      if (this.formData.needs_pickup_delivery) {
+        // Standard delivery charge for Lahore is Rs 500
+        price += 500;
+      }
+      
+      // Update the calculated price in the form data
+      this.formData.calculated_price = price;
+      return price;
+    },
+    
+    async submitForm() {
+      this.isLoading = true;
+      this.error = null;
+      
+      try {
+        // Calculate final price before submitting
+        this.calculatePrice();
+        
+        // Transform form data to match database schema before submission
+        const submissionData = {
+          name: this.formData.full_name,
+          email: this.formData.whatsapp_number,
+          phone: this.formData.whatsapp_number,
+          device_id: this.formData.device_id,
+          repair_ids: [],
+          status: 'pending',
+          problems: this.formData.problems,
+          battery_option: this.formData.battery_option,
+          display_option: this.formData.display_option,
+          battery_add_on: this.formData.battery_add_on,
+          earpiece_option: this.formData.earpiece_option,
+          speaker_option: this.formData.speaker_option,
+          charging_issue_type: this.formData.charging_issue_type,
+          dead_phone_issue_type: this.formData.dead_phone_issue_type,
+          other_problem_description: this.formData.other_problem_description,
+          service_history: this.formData.service_history,
+          previous_repair_by: this.formData.previous_repair_by,
+          previous_repair_details: this.formData.previous_repair_details,
+          previous_repair_other_details: this.formData.previous_repair_other_details,
+          is_from_lahore: this.formData.is_from_lahore,
+          needs_pickup_delivery: this.formData.needs_pickup_delivery,
+          address: this.formData.address,
+          agreed_to_terms: this.formData.agreed_to_terms,
+          calculated_price: this.formData.calculated_price
+        };
+        
+        console.log("Submitting data:", submissionData);
+        
+        const response = await api.submissions.create(submissionData);
+        this.submissionId = response.data.id;
+        return response.data;
+      } catch (error) {
+        this.error = error.message || 'Failed to submit form';
+        console.error('Error submitting form:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    
+    resetForm() {
+      // If we are preserving the form state (for Terms & Conditions navigation), just reset the flag
+      if (this.preserveFormState) {
+        this.preserveFormState = false;
+        return;
+      }
+      
+      // Otherwise reset the form completely
+      this.formData = {
+        device_id: null,
+        problems: [],
+        battery_option: null,
+        display_option: null,
+        battery_add_on: false,
+        bundle_battery_option: null,
+        earpiece_option: null,
+        speaker_option: null,
+        charging_issue_type: null,
+        dead_phone_issue_type: null,
+        other_problem_description: '',
+        service_history: null,
+        previous_repair_by: null,
+        previous_repair_details: '',
+        previous_repair_other_details: '',
+        full_name: '',
+        whatsapp_number: '',
+        is_from_lahore: null,
+        needs_pickup_delivery: false,
+        address: '',
+        agreed_to_terms: false,
+        calculated_price: 0,
+      };
+      this.currentStep = 1;
+      this.error = null;
+    },
+    
+    // Admin actions
+    async fetchSubmissions() {
+      this.isLoading = true;
+      this.error = null;
+      
+      try {
+        const response = await api.submissions.getAll();
+        this.submissions = response.data;
+        return response.data;
+      } catch (error) {
+        this.error = error.message || 'Failed to fetch submissions';
+        console.error('Error fetching submissions:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    
+    // Get a single submission by ID - completely rewritten
+    fetchSubmissionById(id) {
+      console.log(`Fetching submission with ID: ${id}`);
+      this.isLoading = true;
+      this.error = null;
+      
+      return api.submissions.getById(id)
+        .then(response => {
+          console.log("Submission data received:", response.data);
+          this.currentSubmission = response.data;
+          return response.data;
+        })
+        .catch(error => {
+          console.error("Error fetching submission:", error);
+          this.error = error.message || 'Failed to fetch submission details';
+          throw error;
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+    
+    async updateSubmissionStatus(id, status) {
+      this.isLoading = true;
+      this.error = null;
+      
+      try {
+        const response = await api.submissions.updateStatus(id, status);
+        
+        // Update the status in the local state
+        const index = this.submissions.findIndex(sub => sub.id === id);
+        if (index !== -1) {
+          this.submissions[index].status = status;
+        }
+        
+        // Also update currentSubmission if it matches the id
+        if (this.currentSubmission && this.currentSubmission.id === id) {
+          this.currentSubmission.status = status;
+        }
+        
+        return response.data;
+      } catch (error) {
+        this.error = error.message || 'Failed to update submission status';
+        console.error('Error updating submission status:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+  },
+  
+  getters: {
+    isDeviceSelected: (state) => !!state.formData.device_id,
+    
+    hasProblems: (state) => state.formData.problems.length > 0,
+    
+    showBatteryOptions: (state) => state.formData.problems.includes('battery'),
+    
+    showDisplayOptions: (state) => state.formData.problems.includes('display'),
+    
+    showEarpieceOptions: (state) => state.formData.problems.includes('earpiece'),
+    
+    showSpeakerOptions: (state) => state.formData.problems.includes('speaker'),
+    
+    showChargingOptions: (state) => state.formData.problems.includes('charging'),
+    
+    showDeadPhoneOptions: (state) => state.formData.problems.includes('dead'),
+    
+    showOtherProblemField: (state) => state.formData.problems.includes('other'),
+    
+    // Check if a device supports a specific repair type
+    hasRepairOption: (state) => (device, repairType, option = null) => {
+      if (!device || !state.pricingData[device.model]) return false;
+      
+      const pricing = state.pricingData[device.model];
+      
+      // Check for iPhone 14 series - no earpiece or speaker repairs
+      if ((device.model.includes('iPhone 14') || device.model.includes('iPhone 14 Pro') || 
+           device.model.includes('iPhone 14 Plus') || device.model.includes('iPhone 14 Pro Max')) && 
+          (repairType === 'earpiece' || repairType === 'speaker')) {
+        return false;
+      }
+      
+      // For iPhone 14 series, no aftermarket display option
+      if ((device.model.includes('iPhone 14') || device.model.includes('iPhone 14 Pro') || 
+           device.model.includes('iPhone 14 Plus') || device.model.includes('iPhone 14 Pro Max')) && 
+          repairType === 'display' && option === 'Aftermarket') {
+        return false;
+      }
+      
+      if (option) {
+        return pricing[repairType] && pricing[repairType][option] !== undefined && pricing[repairType][option] !== null;
+      }
+      
+      return pricing[repairType] !== undefined && pricing[repairType] !== null;
+    },
+    
+    isFormComplete: (state) => {
+      // Basic validation - can be expanded based on requirements
+      return !!(
+        state.formData.device_id &&
+        state.formData.problems.length > 0 &&
+        state.formData.full_name &&
+        state.formData.whatsapp_number &&
+        state.formData.agreed_to_terms
+      );
+    }
+  }
+});
