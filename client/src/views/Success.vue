@@ -12,7 +12,7 @@
       <h1 class="text-3xl font-bold text-gray-900 mb-4">Request Submitted Successfully!</h1>
       
       <p class="text-lg text-gray-600 mb-6">
-        Thank you for choosing REGEN Repairs. We've received your repair request and will contact you shortly via WhatsApp to confirm the details.
+        Thank you for choosing REGEN. We've received your repair request and will contact you shortly via WhatsApp to confirm the details.
       </p>
       
       <div class="border-t border-b border-gray-200 py-4 my-6">
@@ -32,7 +32,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
             </span>
-            We'll schedule a convenient time for the repair or pickup
+            Ensure your data is completely backed up before handing over your device
           </li>
           <li class="flex items-start">
             <span class="flex-shrink-0 h-5 w-5 text-green-500 mr-2">
@@ -48,12 +48,18 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
             </span>
-            You'll receive your fixed device with a warranty card
+            We will notify you once the repair is complete
           </li>
         </ul>
       </div>
       
-      <div v-if="submissionId" class="bg-gray-50 p-4 rounded-md mb-6">
+      <div v-if="formattedSubmissionId" class="bg-gray-50 p-4 rounded-md mb-6">
+        <p class="text-sm text-gray-600">
+          Your request reference ID: <span class="font-mono font-semibold">{{ formattedSubmissionId }}</span>
+        </p>
+      </div>
+      <!-- Fallback to numeric ID if formatted ID isn't available -->
+      <div v-else-if="submissionId" class="bg-gray-50 p-4 rounded-md mb-6">
         <p class="text-sm text-gray-600">
           Your request reference ID: <span class="font-mono font-semibold">{{ submissionId }}</span>
         </p>
@@ -77,4 +83,5 @@ import { computed } from 'vue';
 
 const repairStore = useRepairStore();
 const submissionId = computed(() => repairStore.submissionId);
+const formattedSubmissionId = computed(() => repairStore.formattedSubmissionId);
 </script>

@@ -22,14 +22,17 @@
           <router-link to="/admin/submissions" class="text-primary hover:text-blue-700">
             &larr; Back to Submissions
           </router-link>
-          <h1 class="mt-2 text-2xl font-bold text-gray-900">Submission #{{ submission.id }}</h1>
+          <h1 class="mt-2 text-2xl font-bold text-gray-900">
+            <span v-if="submission.formatted_id" class="font-mono">{{ submission.formatted_id }}</span>
+            <span v-else>Submission #{{ submission.id }}</span>
+          </h1>
         </div>
         
         <!-- Status Update Dropdown -->
         <div class="relative">
           <select 
             v-model="currentStatus" 
-            @change="updateStatus"
+            @change="handleStatusChange"
             class="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary sm:text-sm sm:leading-6"
           >
             <option value="pending">Pending</option>
@@ -183,6 +186,23 @@
               <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ formatDate(submission.created_at) }}</dd>
             </div>
             
+            <!-- Completion Date (only shown if status is completed) -->
+            <div v-if="submission.status === 'completed' && submission.completion_date" class="px-4 py-5 bg-white sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Completion Date</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ formatDate(submission.completion_date) }}</dd>
+            </div>
+            
+            <!-- Cancellation Date and Notes (only shown if status is cancelled) -->
+            <div v-if="submission.status === 'cancelled' && submission.cancellation_date" class="px-4 py-5 bg-gray-50 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Cancellation Date</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ formatDate(submission.cancellation_date) }}</dd>
+            </div>
+            
+            <div v-if="submission.status === 'cancelled' && submission.cancellation_notes" class="px-4 py-5 bg-white sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              <dt class="text-sm font-medium text-gray-500">Cancellation Notes</dt>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.cancellation_notes }}</dd>
+            </div>
+            
             <div class="px-4 py-5 bg-white sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">Price</dt>
               <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ formatPrice(submission.calculated_price) }}</dd>
@@ -197,6 +217,37 @@
       </div>
       
     </div>
+    
+    <!-- Cancellation Notes Dialog -->
+    <div v-if="showCancellationDialog" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full">
+        <h3 class="text-lg font-medium mb-4">Cancellation Notes</h3>
+        <p class="text-sm text-gray-500 mb-4">Please provide a reason for cancelling this repair.</p>
+        
+        <textarea 
+          v-model="cancellationNotes" 
+          class="w-full p-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary"
+          rows="4"
+          placeholder="Enter reason for cancellation..."
+        ></textarea>
+        
+        <div class="mt-4 flex justify-end space-x-3">
+          <button 
+            @click="cancelCancellation" 
+            class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
+          >
+            Back
+          </button>
+          <button 
+            @click="confirmCancellation" 
+            class="px-4 py-2 bg-red-600 border border-transparent rounded-md text-sm text-white hover:bg-red-700"
+            :disabled="!cancellationNotes.trim()"
+          >
+            Confirm Cancellation
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -206,6 +257,20 @@ import { useRoute, useRouter } from 'vue-router';
 import { useRepairStore } from '../../store/repairStore';
 import { useDeviceStore } from '../../store/deviceStore';
 import api from '../../services/api';
+import axios from 'axios';
+
+// Get the API URL from environment for direct API calls
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+// Create axios instance for direct API calls
+const apiClient = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
+});
 
 const route = useRoute();
 const router = useRouter();
@@ -217,6 +282,11 @@ const error = ref(null);
 const submission = ref(null);
 const currentStatus = ref('');
 const isSaving = ref(false);
+
+// For cancellation dialog
+const showCancellationDialog = ref(false);
+const cancellationNotes = ref('');
+const previousStatus = ref('');
 
 // Fetch submission details
 const fetchSubmission = async () => {
@@ -328,17 +398,95 @@ const formatPrice = (price) => {
   return `Rs ${parseFloat(price).toFixed(2)}`;
 };
 
+// Handle status change
+const handleStatusChange = async () => {
+  if (!submission.value) return;
+  
+  // If status is changed to 'cancelled', show the cancellation dialog
+  if (currentStatus.value === 'cancelled') {
+    previousStatus.value = submission.value.status;
+    showCancellationDialog.value = true;
+    return;
+  }
+  
+  // For other statuses, proceed directly
+  await updateStatus();
+};
+
 // Update status
-const updateStatus = async () => {
+const updateStatus = async (additionalData = {}) => {
   if (!submission.value) return;
   
   try {
-    await repairStore.updateSubmissionStatus(submission.value.id, currentStatus.value);
+    await repairStore.updateSubmissionStatus(submission.value.id, currentStatus.value, additionalData);
     submission.value.status = currentStatus.value;
+    
+    // Update completion date or cancellation date/notes if they're in the response
+    if (currentStatus.value === 'completed' && repairStore.currentSubmission.completion_date) {
+      submission.value.completion_date = repairStore.currentSubmission.completion_date;
+    } else if (currentStatus.value === 'cancelled') {
+      if (repairStore.currentSubmission.cancellation_date) {
+        submission.value.cancellation_date = repairStore.currentSubmission.cancellation_date;
+      }
+      if (additionalData.cancellation_notes) {
+        submission.value.cancellation_notes = additionalData.cancellation_notes;
+      }
+    }
   } catch (err) {
     error.value = err.message || 'Failed to update status';
     // Reset to previous value on error
     currentStatus.value = submission.value.status;
   }
+};
+
+// Direct API implementation to bypass potential store issues
+const confirmCancellation = async () => {
+  if (!cancellationNotes.value.trim()) {
+    return; // Require notes for cancellation
+  }
+  
+  console.log("Confirming cancellation with notes:", cancellationNotes.value);
+  
+  try {
+    isLoading.value = true;
+    
+    // Create the payload
+    const payload = {
+      status: 'cancelled',
+      cancellation_notes: cancellationNotes.value
+    };
+    
+    console.log("Sending direct API request with payload:", payload);
+    
+    // Make a direct API call to avoid any store transformation issues
+    const submissionId = parseInt(submission.value.id, 10);
+    const response = await apiClient.patch(`/submissions/${submissionId}/status`, payload);
+    
+    console.log("Direct API response:", response.data);
+    
+    // Update local state with the response data
+    Object.assign(submission.value, response.data);
+    
+    // Explicitly set cancellation notes if they weren't returned in the response
+    if (!submission.value.cancellation_notes) {
+      submission.value.cancellation_notes = cancellationNotes.value;
+      console.log("Manually setting cancellation notes in local state");
+    }
+    
+    showCancellationDialog.value = false;
+    cancellationNotes.value = '';
+  } catch (err) {
+    console.error("Error in direct API call:", err);
+    error.value = err.message || 'Failed to update status';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const cancelCancellation = () => {
+  // Reset the status to the previous value
+  currentStatus.value = previousStatus.value;
+  showCancellationDialog.value = false;
+  cancellationNotes.value = '';
 };
 </script>

@@ -33,6 +33,7 @@ export const useRepairStore = defineStore('repair', {
     currentStep: 1,
     totalSteps: 5,
     submissionId: null,
+    formattedSubmissionId: null, // Added to store the formatted ID
     submissions: [], // for admin view
     currentSubmission: null, // For viewing a single submission
     preserveFormState: false, // Flag to preserve form state when navigating to Terms
@@ -247,7 +248,19 @@ export const useRepairStore = defineStore('repair', {
         console.log("Submitting data:", submissionData);
         
         const response = await api.submissions.create(submissionData);
+        console.log("Full server response data:", response.data);
+        
         this.submissionId = response.data.id;
+        
+        // Store the formatted ID from the response
+        if (response.data.formatted_id) {
+          this.formattedSubmissionId = response.data.formatted_id;
+          console.log(`Submission created with formatted ID: ${this.formattedSubmissionId}`);
+        } else {
+          console.warn('No formatted ID received from server, using numeric ID instead');
+          this.formattedSubmissionId = null;
+        }
+        
         return response.data;
       } catch (error) {
         this.error = error.message || 'Failed to submit form';
@@ -334,28 +347,83 @@ export const useRepairStore = defineStore('repair', {
         });
     },
     
-    async updateSubmissionStatus(id, status) {
+    async updateSubmissionStatus(id, status, additionalData = {}) {
       this.isLoading = true;
       this.error = null;
       
       try {
-        const response = await api.submissions.updateStatus(id, status);
+        console.log(`Updating submission ${id} status to: ${status}`);
+        console.log(`Additional data:`, additionalData);
+        
+        const response = await api.submissions.updateStatus(id, status, additionalData);
+        console.log('Status update response:', response.data);
+        
+        // Verify that the status was actually updated in the response
+        if (response.data.status !== status) {
+          console.warn(`Server returned status ${response.data.status} instead of ${status}`);
+        }
         
         // Update the status in the local state
         const index = this.submissions.findIndex(sub => sub.id === id);
         if (index !== -1) {
+          // Update the status
           this.submissions[index].status = status;
+          
+          // Also update additional fields like completion_date, cancellation_date, cancellation_notes
+          if (status === 'completed' && response.data.completion_date) {
+            this.submissions[index].completion_date = response.data.completion_date;
+          }
+          
+          if (status === 'cancelled') {
+            if (response.data.cancellation_date) {
+              this.submissions[index].cancellation_date = response.data.cancellation_date;
+            }
+            // Make sure cancellation notes are updated from both the additionalData and the response
+            if (additionalData.cancellation_notes) {
+              console.log(`Setting cancellation notes from additionalData: ${additionalData.cancellation_notes}`);
+              this.submissions[index].cancellation_notes = additionalData.cancellation_notes;
+            } else if (response.data.cancellation_notes) {
+              console.log(`Setting cancellation notes from response: ${response.data.cancellation_notes}`);
+              this.submissions[index].cancellation_notes = response.data.cancellation_notes;
+            }
+          }
+          
+          console.log(`Updated local submission at index ${index} to status: ${status}`);
+        } else {
+          console.warn(`Could not find submission ${id} in local state to update`);
         }
         
         // Also update currentSubmission if it matches the id
         if (this.currentSubmission && this.currentSubmission.id === id) {
+          // Update the status
           this.currentSubmission.status = status;
+          
+          // Also update additional fields
+          if (status === 'completed' && response.data.completion_date) {
+            this.currentSubmission.completion_date = response.data.completion_date;
+          }
+          
+          if (status === 'cancelled') {
+            if (response.data.cancellation_date) {
+              this.currentSubmission.cancellation_date = response.data.cancellation_date;
+            }
+            // Make sure cancellation notes are updated from both the additionalData and the response
+            if (additionalData.cancellation_notes) {
+              console.log(`Setting currentSubmission cancellation notes: ${additionalData.cancellation_notes}`);
+              this.currentSubmission.cancellation_notes = additionalData.cancellation_notes;
+            } else if (response.data.cancellation_notes) {
+              console.log(`Setting currentSubmission cancellation notes from response: ${response.data.cancellation_notes}`);
+              this.currentSubmission.cancellation_notes = response.data.cancellation_notes;
+            }
+          }
+          
+          console.log(`Updated currentSubmission to status: ${status}`);
         }
         
         return response.data;
       } catch (error) {
-        this.error = error.message || 'Failed to update submission status';
-        console.error('Error updating submission status:', error);
+        console.error('Error updating submission status:', error.response || error);
+        this.error = error.response?.data?.error || error.message || 'Failed to update submission status';
         throw error;
       } finally {
         this.isLoading = false;

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const SubmissionController = require('../controllers/SubmissionController');
+const Submission = require('../models/Submission');
 const { createClient } = require('@supabase/supabase-js');
 const dotenv = require('dotenv');
 const axios = require('axios');
@@ -36,29 +37,22 @@ router.post('/', async (req, res, next) => {
   try {
     const formData = req.body;
     
-    // Add default status and timestamp
-    const submission = {
-      ...formData,
-      status: 'pending',
-      created_at: new Date().toISOString()
-    };
+    // Log the incoming data
+    console.log('Received submission data in route handler:', JSON.stringify(formData, null, 2));
     
-    console.log('Processing submission in route handler');
+    // Use the Submission model's create method to properly handle formatted_id generation
+    const newSubmission = await Submission.create(formData);
     
-    const { data, error } = await supabase
-      .from('submissions')
-      .insert([submission])
-      .select();
-    
-    if (error) throw error;
+    console.log('Submission created with data:', JSON.stringify(newSubmission, null, 2));
     
     // Manually trigger Zapier webhook after successful submission
     try {
       console.log('Sending data to Zapier webhook from route handler:', ZAPIER_WEBHOOK_URL);
       
       const zapierResponse = await axios.post(ZAPIER_WEBHOOK_URL, {
-        ...submission,
-        id: data[0].id
+        ...formData,
+        id: newSubmission.id,
+        formatted_id: newSubmission.formatted_id // Include formatted_id in Zapier payload
       });
       
       console.log('Zapier webhook response:', zapierResponse.status, zapierResponse.statusText);
@@ -67,8 +61,9 @@ router.post('/', async (req, res, next) => {
       // Don't fail the submission if Zapier webhook fails
     }
     
-    res.status(201).json(data[0]);
+    res.status(201).json(newSubmission);
   } catch (error) {
+    console.error('Error in submission route handler:', error);
     next(error);
   }
 });
@@ -80,32 +75,66 @@ router.post('/', async (req, res, next) => {
 router.patch('/:id/status', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    
+    // Log the entire request for debugging
+    console.log(`Status update request for ID ${id}:`, {
+      body: req.body,
+      headers: req.headers,
+      method: req.method
+    });
+    
+    // Destructure after logging to debug
+    const { status, cancellation_notes } = req.body;
+    
+    console.log(`Route handler: Attempting to update submission ID: ${id} to status: ${status}`);
+    console.log(`Request body:`, JSON.stringify(req.body, null, 2));
+    console.log(`Cancellation notes from request:`, cancellation_notes);
     
     if (!status || !['pending', 'in_progress', 'completed', 'cancelled'].includes(status)) {
+      console.log(`Invalid status provided: ${status}`);
       return res.status(400).json({
         error: 'Invalid status. Must be one of: pending, in_progress, completed, cancelled',
         status: 'error'
       });
     }
     
-    const { data, error } = await supabase
-      .from('submissions')
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select();
+    // Prepare data for update - include all relevant fields from request body
+    const updateData = { status };
     
-    if (error) throw error;
+    // If status is cancelled and cancellation_notes is provided, include it
+    if (status === 'cancelled' && cancellation_notes) {
+      updateData.cancellation_notes = cancellation_notes;
+      console.log(`Including cancellation notes in update: "${cancellation_notes}"`);
+    } else if (status === 'cancelled') {
+      console.log(`No cancellation notes provided for cancelled status.`);
+    }
     
-    if (data.length === 0) {
-      return res.status(404).json({
-        error: 'Submission not found',
+    // Use the Submission model's update method which now handles ID conversion properly
+    try {
+      const result = await Submission.update(id, updateData);
+      
+      if (!result) {
+        console.log(`No submission found with ID: ${id}`);
+        return res.status(404).json({
+          error: 'Submission not found',
+          status: 'error'
+        });
+      }
+      
+      console.log(`Successfully updated submission ${id} to ${status}`);
+      console.log(`Response data:`, JSON.stringify(result, null, 2));
+      return res.status(200).json(result);
+      
+    } catch (updateError) {
+      console.error('Error updating submission status:', updateError);
+      return res.status(500).json({
+        error: 'Failed to update submission status',
+        details: updateError.message,
         status: 'error'
       });
     }
-    
-    res.status(200).json(data[0]);
   } catch (error) {
+    console.error('Unexpected error in status update route handler:', error);
     next(error);
   }
 });

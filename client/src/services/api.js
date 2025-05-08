@@ -13,6 +13,24 @@ const apiClient = axios.create({
   }
 });
 
+// Add a request interceptor for debugging
+apiClient.interceptors.request.use(
+  config => {
+    // Log every outgoing request
+    console.log('API Request:', {
+      method: config.method.toUpperCase(),
+      url: config.url,
+      data: config.data,
+      headers: config.headers,
+    });
+    return config;
+  },
+  error => {
+    console.error('Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
 // Add a response interceptor for error handling
 apiClient.interceptors.response.use(
   response => response,
@@ -72,8 +90,24 @@ export default {
     create(data) {
       return apiClient.post('/submissions', data);
     },
-    updateStatus(id, status) {
-      return apiClient.patch(`/submissions/${id}/status`, { status });
+    updateStatus(id, status, additionalData = {}) {
+      console.log(`API: Updating submission ${id} to status: ${status}`);
+      // Ensure ID is properly formatted as Supabase may expect a number type ID
+      const submissionId = parseInt(id, 10);
+      if (isNaN(submissionId)) {
+        console.error(`Invalid submission ID format: ${id}`);
+        return Promise.reject(new Error("Invalid submission ID format"));
+      }
+      
+      // Create payload with status and any additional data (like cancellation notes)
+      const payload = { 
+        status,
+        ...additionalData
+      };
+      
+      console.log(`Sending status update payload:`, payload);
+      
+      return apiClient.patch(`/submissions/${submissionId}/status`, payload);
     },
   }
 };

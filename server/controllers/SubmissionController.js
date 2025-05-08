@@ -40,16 +40,15 @@ class SubmissionController {
       
       // Map form fields to match the database schema
       const submissionData = {
-        name: formData.full_name,
-        email: formData.whatsapp_number, // Using WhatsApp as email
-        phone: formData.whatsapp_number,
+        name: formData.name || formData.full_name,
+        email: formData.email || formData.whatsapp_number, // Using WhatsApp as email
+        phone: formData.phone || formData.whatsapp_number,
         device_id: formData.device_id,
-        repair_ids: [],
+        repair_ids: formData.repair_ids || [],
         status: 'pending',
         problems: formData.problems,
         battery_option: formData.battery_option,
         display_option: formData.display_option,
-        // Replaced three separate fields with the single battery_add_on field
         battery_add_on: formData.battery_add_on,
         earpiece_option: formData.earpiece_option,
         speaker_option: formData.speaker_option,
@@ -71,8 +70,13 @@ class SubmissionController {
       
       console.log("Submitting data to database:", JSON.stringify(submissionData, null, 2));
       
-      // Create submission in database
+      // Create submission in database with formatted ID
       const newSubmission = await Submission.create(submissionData);
+      
+      console.log("Submission created successfully:", {
+        id: newSubmission.id,
+        formatted_id: newSubmission.formatted_id
+      });
       
       // Send data to Zapier webhook
       try {
@@ -81,6 +85,7 @@ class SubmissionController {
         const zapierPayload = {
           ...formData,
           id: newSubmission.id,
+          formatted_id: newSubmission.formatted_id, // Include formatted ID in Zapier payload
           created_at: newSubmission.created_at
         };
         

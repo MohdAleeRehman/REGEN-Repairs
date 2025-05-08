@@ -54,7 +54,9 @@
                 </div>
                 <div class="flex flex-shrink-0 ml-2">
                   <p class="text-sm text-gray-500">
-                    Submitted {{ formatDate(submission.created_at) }}
+                    <span v-if="submission.formatted_id" class="font-mono">{{ submission.formatted_id }}</span>
+                    <span v-else>ID: {{ submission.id }}</span>
+                    | Submitted {{ formatDate(submission.created_at) }}
                   </p>
                 </div>
               </div>

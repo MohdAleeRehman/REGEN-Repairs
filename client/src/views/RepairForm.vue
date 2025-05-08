@@ -762,7 +762,7 @@
       <div v-if="repairStore.formData.service_history === 'yes'" class="mb-6">
         <h3 class="mb-4 font-medium">Who was it repaired by?</h3>
         
-        <div class="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-3">
+        <div class="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-2">
           <div 
             @click="repairStore.formData.previous_repair_by = 'apple'"
             class="flex items-center p-4 transition-all duration-200 border rounded-lg shadow-sm cursor-pointer"
@@ -778,6 +778,23 @@
               </div>
             </div>
             <span class="font-medium" :class="{ 'text-primary': repairStore.formData.previous_repair_by === 'apple' }">Apple</span>
+          </div>
+          
+          <div 
+            @click="repairStore.formData.previous_repair_by = 'regen'"
+            class="flex items-center p-4 transition-all duration-200 border rounded-lg shadow-sm cursor-pointer"
+            :class="{ 
+              'bg-gradient-to-r from-blue-50 to-blue-100 border-primary': repairStore.formData.previous_repair_by === 'regen',
+              'bg-white border-gray-200 hover:bg-blue-50': repairStore.formData.previous_repair_by !== 'regen'
+            }"
+          >
+            <div class="flex-shrink-0 mr-3">
+              <div class="flex items-center justify-center w-6 h-6 border-2 rounded-full"
+                :class="{'border-primary bg-primary text-white': repairStore.formData.previous_repair_by === 'regen', 'border-gray-300': repairStore.formData.previous_repair_by !== 'regen'}">
+                <div v-if="repairStore.formData.previous_repair_by === 'regen'" class="w-2 h-2 bg-white rounded-full"></div>
+              </div>
+            </div>
+            <span class="font-medium" :class="{ 'text-primary': repairStore.formData.previous_repair_by === 'regen' }">REGEN</span>
           </div>
           
           <div 
@@ -1139,6 +1156,11 @@ const devicePricing = computed(() => {
 const selectDevice = (device) => {
   repairStore.updateFormField('device_id', device.id);
   deviceStore.selectDevice(device);
+  
+  // Auto-navigate to next step on mobile devices
+  if (window.innerWidth < 768) { // Standard mobile breakpoint
+    repairStore.nextStep();
+  }
 };
 
 // Format price helper

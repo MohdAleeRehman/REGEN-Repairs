@@ -1,3 +1,7 @@
+#!/bin/bash
+
+# Create a temporary file with the updated server.js content
+cat > /tmp/server.js << 'EOF'
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -146,3 +150,20 @@ try {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
+EOF
+
+# Replace the server.js file
+cp /tmp/server.js server.js
+
+# Restart the server with PM2
+echo "Stopping all PM2 processes..."
+pm2 delete all
+
+echo "Starting server with the updated code..."
+pm2 start ecosystem.config.js --env production
+
+# Check the status after restart
+echo "PM2 status after restart:"
+pm2 status
+
+echo "Server restart complete. Check the logs with 'pm2 logs' to ensure it's running correctly."
