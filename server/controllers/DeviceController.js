@@ -1,4 +1,5 @@
 const Device = require('../models/Device');
+const cloudinaryService = require('../services/cloudinary');
 
 class DeviceController {
   // Get all devices
@@ -93,6 +94,60 @@ class DeviceController {
     } catch (error) {
       console.error('Error importing devices:', error);
       res.status(500).json({ error: 'Failed to import devices' });
+    }
+  }
+  
+  // Upload device image
+  static async uploadDeviceImage(req, res) {
+    try {
+      const { id } = req.params;
+      
+      // Check if device exists
+      const device = await Device.getById(id);
+      if (!device) {
+        return res.status(404).json({ error: 'Device not found' });
+      }
+      
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided' });
+      }
+      
+      // Get optimized transformations
+      const optimizedTransformations = cloudinaryService.getOptimizedTransformations('phone');
+      
+      // Upload to Cloudinary with optimized settings
+      const result = await cloudinaryService.uploadImage(
+        req.file.path,
+        'device_images',
+        {
+          public_id: `device_${id}`,
+          overwrite: true,
+          transformation: [
+            { 
+              width: optimizedTransformations.width,
+              height: optimizedTransformations.height,
+              crop: optimizedTransformations.crop,
+              quality: optimizedTransformations.quality,
+              fetch_format: optimizedTransformations.fetch_format,
+              dpr: optimizedTransformations.dpr,
+              effect: optimizedTransformations.effect
+            }
+          ]
+        }
+      );
+      
+      // Update device with image URL
+      const updatedDevice = await Device.updateImageUrl(id, result.url);
+      
+      res.json({
+        success: true,
+        device: updatedDevice,
+        imageUrl: result.url
+      });
+    } catch (error) {
+      console.error('Error uploading device image:', error);
+      res.status(500).json({ error: 'Failed to upload device image' });
     }
   }
 }

@@ -128,6 +128,51 @@
             />
           </div>
           
+          <!-- Device Image Upload -->
+          <div class="mb-6" v-if="editingDevice">
+            <label class="block mb-1 text-sm font-medium text-gray-700">Device Image</label>
+            
+            <div class="flex items-center mt-2">
+              <!-- Image Preview -->
+              <div v-if="imagePreview || editingDevice.image_url" class="relative flex-shrink-0 w-24 h-24 mr-4 border rounded-md overflow-hidden">
+                <img 
+                  :src="imagePreview || editingDevice.image_url" 
+                  alt="Device Preview" 
+                  class="object-cover w-full h-full"
+                />
+                <button 
+                  v-if="imagePreview || editingDevice.image_url"
+                  @click="removeImage" 
+                  class="absolute top-0 right-0 p-1 text-white bg-red-500 rounded-bl-md hover:bg-red-600"
+                  type="button"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              
+              <!-- Upload Button -->
+              <div>
+                <input
+                  type="file"
+                  ref="fileInput"
+                  accept="image/*"
+                  class="hidden"
+                  @change="handleImageSelected"
+                />
+                <button
+                  type="button"
+                  @click="$refs.fileInput.click()"
+                  class="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {{ imagePreview || editingDevice.image_url ? 'Change Image' : 'Upload Image' }}
+                </button>
+                <p class="mt-1 text-xs text-gray-500">JPG, PNG or GIF, Max size: 5MB</p>
+              </div>
+            </div>
+          </div>
+          
           <div class="flex justify-end space-x-3">
             <button 
               type="button" 
@@ -350,6 +395,10 @@ export default {
     const isSubmittingPrices = ref(false);
     const isDeleting = ref(false);
     const isLoadingRepairs = ref(false);
+    const fileInput = ref(null);
+    const selectedImage = ref(null);
+    const imagePreview = ref(null);
+    const isUploadingImage = ref(false);
     
     const defaultFormState = {
       brand: '',
@@ -386,11 +435,15 @@ export default {
       // Reset form
       Object.assign(deviceForm, defaultFormState);
       editingDevice.value = null;
+      selectedImage.value = null;
+      imagePreview.value = null;
       showModal.value = true;
     }
     
     function openEditDeviceModal(device) {
       editingDevice.value = device;
+      selectedImage.value = null;
+      imagePreview.value = null;
       
       // Populate form with device data
       Object.assign(deviceForm, {
@@ -404,6 +457,61 @@ export default {
     
     function closeModal() {
       showModal.value = false;
+      selectedImage.value = null;
+      imagePreview.value = null;
+    }
+    
+    // Image handling methods
+    function handleImageSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size must be less than 5MB');
+        return;
+      }
+      
+      // Validate file type
+      if (!file.type.match('image.*')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      selectedImage.value = file;
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        imagePreview.value = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    function removeImage() {
+      selectedImage.value = null;
+      imagePreview.value = null;
+      if (fileInput.value) {
+        fileInput.value.value = '';
+      }
+    }
+    
+    async function uploadDeviceImage() {
+      if (!selectedImage.value || !editingDevice.value) return;
+      
+      isUploadingImage.value = true;
+      
+      try {
+        await deviceStore.uploadDeviceImage(editingDevice.value.id, selectedImage.value);
+        // Update local preview
+        imagePreview.value = null;
+        selectedImage.value = null;
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        alert('Failed to upload image. Please try again.');
+      } finally {
+        isUploadingImage.value = false;
+      }
     }
     
     // Device Actions
@@ -417,9 +525,20 @@ export default {
             id: editingDevice.value.id,
             ...deviceForm
           });
+          
+          // Upload image if selected
+          if (selectedImage.value) {
+            await uploadDeviceImage();
+          }
         } else {
           // Add new device
-          await deviceStore.addDevice(deviceForm);
+          const newDevice = await deviceStore.addDevice(deviceForm);
+          
+          // If there's a selected image and the device was created successfully
+          if (selectedImage.value && newDevice) {
+            editingDevice.value = newDevice;
+            await uploadDeviceImage();
+          }
         }
         
         closeModal();
@@ -558,6 +677,10 @@ export default {
       isSubmittingPrices,
       isDeleting,
       isLoadingRepairs,
+      fileInput,
+      selectedImage,
+      imagePreview,
+      isUploadingImage,
       openAddDeviceModal,
       openEditDeviceModal,
       closeModal,
@@ -566,7 +689,10 @@ export default {
       deleteDevice,
       openEditPricesModal,
       closePricesModal,
-      saveRepairPrices
+      saveRepairPrices,
+      handleImageSelected,
+      removeImage,
+      uploadDeviceImage
     };
   }
 };

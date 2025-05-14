@@ -8,8 +8,8 @@
     />
     
     <!-- Step 1: Device Selection -->
-    <div v-if="repairStore.currentStep === 1">
-      <h2 class="mb-4 text-xl font-semibold">Choose Your Device</h2>
+    <div v-if="repairStore.currentStep === 1" class="transition-all duration-300">
+      <h2 class="mb-4 text-xl font-semibold" ref="step1Heading" tabindex="-1">Choose Your Device</h2>
       
       <div v-if="deviceStore.isLoading" class="py-10 text-center">
         <div class="inline-block w-8 h-8 border-t-2 border-b-2 rounded-full animate-spin border-primary"></div>
@@ -20,12 +20,17 @@
         {{ deviceStore.error }}
       </div>
       
-      <div v-else class="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-3 md:grid-cols-4">
+      <div v-else class="grid grid-cols-2 gap-6 mb-6 sm:grid-cols-3 md:grid-cols-4">
         <div
           v-for="device in deviceStore.availableDevices"
           :key="device.id"
           @click="selectDevice(device)"
+          @keyup.enter="selectDevice(device)"
+          @keyup.space="selectDevice(device)"
           class="transition-all duration-200 transform cursor-pointer hover:scale-105"
+          tabindex="0"
+          role="button"
+          :aria-selected="repairStore.formData.device_id === device.id"
         >
           <div 
             class="flex flex-col items-center justify-center h-full p-4 text-center rounded-lg shadow-sm"
@@ -34,8 +39,37 @@
               'bg-white border border-gray-200 hover:bg-blue-50': repairStore.formData.device_id !== device.id
             }"
           >
-            <div class="w-12 h-12 mx-auto mb-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="w-24 h-24 mx-auto mb-2 relative">
+              <template v-if="device.image_url">
+                <div v-if="!imageLoaded[device.id]" class="absolute inset-0 bg-gray-200 animate-pulse rounded-md flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <img 
+                  :src="device.image_url" 
+                  :alt="device.model"
+                  class="object-contain w-full h-full transition-opacity duration-300"
+                  :class="{ 'opacity-0': !imageLoaded[device.id], 'opacity-100': imageLoaded[device.id] }"
+                  @load="imageLoaded[device.id] = true"
+                  loading="lazy"
+                  decoding="async"
+                  :fetchpriority="isHighPriorityDevice(device) ? 'high' : 'low'"
+                  width="96"
+                  height="96"
+                />
+              </template>
+              <svg 
+                v-else
+                xmlns="http://www.w3.org/2000/svg" 
+                class="w-full h-full" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                stroke-width="1.5" 
+                stroke-linecap="round" 
+                stroke-linejoin="round"
+              >
                 <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
                 <line x1="12" y1="18" x2="12" y2="18.01"></line>
               </svg>
@@ -49,26 +83,37 @@
       
       <div class="flex justify-end mt-6">
         <button 
-          @click="repairStore.nextStep()"
+          v-if="repairStore.isDeviceSelected"
+          @click="nextWithAnimation()"
           class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-blue-700 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
-          :disabled="!repairStore.isDeviceSelected"
-          :class="{ 'opacity-50 cursor-not-allowed': !repairStore.isDeviceSelected }"
         >
-          Next
+          Continue
+        </button>
+        <button 
+          v-else
+          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-gray-400 opacity-50 cursor-not-allowed"
+          disabled
+        >
+          Select a Device
         </button>
       </div>
     </div>
     
     <!-- Step 2: Problem Selection -->
-    <div v-else-if="repairStore.currentStep === 2">
-      <h2 class="mb-4 text-xl font-semibold">What Problem(s) are you facing?</h2>
+    <div v-if="repairStore.currentStep === 2" class="transition-all duration-300">
+      <h2 class="mb-4 text-xl font-semibold" ref="step2Heading" tabindex="-1">What Problem(s) are you facing?</h2>
       
       <div class="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-2 md:grid-cols-3">
         <div 
           v-for="problem in filteredProblemOptions" 
           :key="problem.value"
           @click="toggleProblem(problem.value)"
+          @keyup.enter="toggleProblem(problem.value)"
+          @keyup.space="toggleProblem(problem.value)"
           class="p-4 transition-all duration-200 rounded-lg cursor-pointer"
+          tabindex="0"
+          role="checkbox"
+          :aria-checked="repairStore.formData.problems.includes(problem.value)"
           :class="{ 
             'bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-primary shadow-md': repairStore.formData.problems.includes(problem.value),
             'bg-white border border-gray-200 hover:bg-blue-50': !repairStore.formData.problems.includes(problem.value)
@@ -84,26 +129,32 @@
       
       <div class="flex justify-between mt-6">
         <button 
-          @click="repairStore.previousStep()"
+          @click="previousWithAnimation()"
           class="px-6 py-3 transition-transform border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 hover:scale-105 focus:ring-2 focus:ring-gray-200 focus:ring-offset-2"
         >
           Back
         </button>
         
         <button 
-          @click="repairStore.nextStep()"
+          v-if="repairStore.hasProblems"
+          @click="nextWithAnimation()"
           class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-blue-700 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
-          :disabled="!repairStore.hasProblems"
-          :class="{ 'opacity-50 cursor-not-allowed': !repairStore.hasProblems }"
         >
-          Next
+          Continue
+        </button>
+        <button 
+          v-else
+          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-gray-400 opacity-50 cursor-not-allowed"
+          disabled
+        >
+          Select at least one problem
         </button>
       </div>
     </div>
     
     <!-- Step 3: Problem Details -->
     <div v-else-if="repairStore.currentStep === 3">
-      <h2 class="mb-4 text-xl font-semibold">Problem Details</h2>
+      <h2 class="mb-4 text-xl font-semibold" ref="step3Heading" tabindex="-1">Problem Details</h2>
       
       <!-- Battery Options -->
       <div v-if="repairStore.showBatteryOptions" class="mb-8">
@@ -682,17 +733,25 @@
       
       <div class="flex justify-between mt-6">
         <button 
-          @click="repairStore.previousStep()"
+          @click="previousWithAnimation()"
           class="px-6 py-3 transition-transform border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 hover:scale-105 focus:ring-2 focus:ring-gray-200 focus:ring-offset-2"
         >
           Back
         </button>
         
         <button 
-          @click="repairStore.nextStep()"
+          v-if="repairStore.isProblemDetailsValid"
+          @click="nextWithAnimation()"
           class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-blue-700 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
         >
-          Next
+          Continue
+        </button>
+        <button 
+          v-else
+          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-gray-400 opacity-50 cursor-not-allowed"
+          disabled
+        >
+          Complete Required Options
         </button>
       </div>
     </div>
@@ -901,17 +960,25 @@
       
       <div class="flex justify-between mt-6">
         <button 
-          @click="repairStore.previousStep()"
+          @click="previousWithAnimation()"
           class="px-6 py-3 transition-transform border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 hover:scale-105 focus:ring-2 focus:ring-gray-200 focus:ring-offset-2"
         >
           Back
         </button>
         
         <button 
-          @click="repairStore.nextStep()"
+          v-if="repairStore.isServiceHistoryValid"
+          @click="nextWithAnimation()"
           class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-blue-700 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
         >
-          Next
+          Continue
+        </button>
+        <button 
+          v-else
+          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-gray-400 opacity-50 cursor-not-allowed"
+          disabled
+        >
+          Complete Service History
         </button>
       </div>
     </div>
@@ -1060,17 +1127,17 @@
       
       <div class="flex justify-between mt-6">
         <button 
-          @click="repairStore.previousStep()"
+          @click="previousWithAnimation()"
           class="px-6 py-3 transition-transform border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 hover:scale-105 focus:ring-2 focus:ring-gray-200 focus:ring-offset-2"
         >
           Back
         </button>
         
         <button 
-          @click="submitForm"
+          @click="submitForm()"
           class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-blue-700 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
-          :disabled="!repairStore.isFormComplete"
-          :class="{ 'opacity-50 cursor-not-allowed': !repairStore.isFormComplete }"
+          :disabled="!repairStore.isFormValid"
+          :class="{ 'opacity-50 cursor-not-allowed': !repairStore.isFormValid }"
         >
           Submit Request
         </button>
@@ -1089,6 +1156,53 @@ import StepIndicator from '../components/ui/StepIndicator.vue';
 const router = useRouter();
 const deviceStore = useDeviceStore();
 const repairStore = useRepairStore();
+
+// Track image loading state for each device with reactive ref
+const imageLoaded = ref({});
+
+// Add new state to track if viewport is visible
+const isVisible = ref(true);
+
+// Use Intersection Observer API to detect if component is visible
+onMounted(() => {
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          isVisible.value = entry.isIntersecting;
+        });
+      },
+      { threshold: 0.1 }
+    );
+    
+    const container = document.querySelector('.max-w-4xl');
+    if (container) {
+      observer.observe(container);
+    }
+    
+    // Cleanup observer on component unmount
+    return () => {
+      if (container) {
+        observer.unobserve(container);
+      }
+    };
+  }
+});
+
+// Initialize image loaded state from session storage
+onMounted(() => {
+  try {
+    const cachedImageStates = sessionStorage.getItem('regen-device-images-loaded');
+    if (cachedImageStates) {
+      const parsedState = JSON.parse(cachedImageStates);
+      Object.keys(parsedState).forEach(key => {
+        imageLoaded.value[key] = parsedState[key];
+      });
+    }
+  } catch (e) {
+    console.error('Error loading image cache:', e);
+  }
+});
 
 // Form steps
 const steps = [
@@ -1159,7 +1273,7 @@ const selectDevice = (device) => {
   
   // Auto-navigate to next step on mobile devices
   if (window.innerWidth < 768) { // Standard mobile breakpoint
-    repairStore.nextStep();
+    nextWithAnimation();
   }
 };
 
@@ -1204,6 +1318,17 @@ const getPriceRangeForProblem = (problem) => {
 const hasRepairOption = (repairType, option = null) => {
   if (!selectedDevice.value) return false;
   return repairStore.hasRepairOption(selectedDevice.value, repairType, option);
+};
+
+// Check if a device is high priority
+const isHighPriorityDevice = (device) => {
+  const highPriorityModels = [
+    'iPhone 14', 'iPhone 13', 'iPhone 12', 'iPhone 11'
+  ];
+  
+  if (!device?.model) return false;
+  
+  return highPriorityModels.some(prefix => device.model.includes(prefix));
 };
 
 // Submit form
@@ -1267,5 +1392,372 @@ onMounted(async () => {
 // Reset form when navigating away
 onMounted(() => {
   repairStore.resetForm();
+  
+  // Set focus to heading when step changes
+  if (repairStore.currentStep === 1) {
+    setFocusToCurrentStep();
+  }
+  
+  // Preload device images
+  preloadDeviceImages();
 });
+
+// Preload device images to improve loading experience
+const preloadDeviceImages = () => {
+  // Wait for devices to be loaded
+  if (deviceStore.devices.length === 0) return;
+  
+  // Import the image optimization service
+  import('../services/imageOptimizer').then(({ default: imageOptimizer }) => {
+    // Prioritize iPhone models that are likely to be visible first
+    const priorityOrder = [
+      'iPhone 14', 'iPhone 13', 'iPhone 12', 'iPhone 11',
+      'iPhone SE', 'iPhone X', 'iPhone 8', 'iPhone 7'
+    ];
+    
+    // Sort devices by priority for loading
+    const sortedDevices = [...deviceStore.devices].sort((a, b) => {
+      const aIndex = priorityOrder.findIndex(prefix => a.model.includes(prefix));
+      const bIndex = priorityOrder.findIndex(prefix => b.model.includes(prefix));
+      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+    });
+    
+    // Check if we're on a mobile connection
+    const lowBandwidth = imageOptimizer.isLowBandwidthConnection();
+    
+    // Load first 4 devices immediately, delay others based on connection speed
+    const firstBatchSize = lowBandwidth ? 2 : 4;
+    const firstBatch = sortedDevices.slice(0, firstBatchSize);
+    const secondBatch = sortedDevices.slice(firstBatchSize, firstBatchSize + 4);
+    const remainingDevices = sortedDevices.slice(firstBatchSize + 4);
+    
+    // Load first batch immediately with high priority
+    Promise.all(firstBatch.map(device => {
+      // Optimize the URL before preloading
+      if (device.image_url) {
+        device.image_url = imageOptimizer.optimizeCloudinaryUrl(device.image_url);
+      }
+      return imageOptimizer.preloadImage(device, 'high').then(success => {
+        if (success) {
+          imageLoaded.value[device.id] = true;
+        }
+      });
+    }));
+    
+    // Load second batch after a short delay with medium priority
+    if (secondBatch.length > 0) {
+      setTimeout(() => {
+        secondBatch.forEach(device => {
+          // Optimize the URL before preloading
+          if (device.image_url) {
+            device.image_url = imageOptimizer.optimizeCloudinaryUrl(device.image_url);
+          }
+          imageOptimizer.preloadImage(device, 'medium').then(success => {
+            if (success) {
+              imageLoaded.value[device.id] = true;
+            }
+          });
+        });
+      }, lowBandwidth ? 2000 : 500);
+    }
+    
+    // Load remaining devices after longer delay with low priority
+    if (remainingDevices.length > 0) {
+      setTimeout(() => {
+        remainingDevices.forEach(device => {
+          // Optimize the URL before preloading
+          if (device.image_url) {
+            device.image_url = imageOptimizer.optimizeCloudinaryUrl(device.image_url);
+          }
+          imageOptimizer.preloadImage(device, 'low').then(success => {
+            if (success) {
+              imageLoaded.value[device.id] = true;
+            }
+          });
+        });
+      }, lowBandwidth ? 4000 : 1500);
+    }
+  }).catch(err => {
+    console.error('Failed to load image optimizer:', err);
+  });
+};
+
+// Watch for devices loading and preload images when they become available
+watch(() => deviceStore.devices, (newDevices) => {
+  if (newDevices.length > 0) {
+    preloadDeviceImages();
+  }
+}, { immediate: true });
+
+// Set focus to the appropriate heading based on current step
+const setFocusToCurrentStep = () => {
+  // Use the same logic as focusCurrentStepHeading
+  setTimeout(focusCurrentStepHeading, 50);
+};
+
+// References for focus management
+const step1Heading = ref(null);
+const step2Heading = ref(null);
+const step3Heading = ref(null);
+const step4Heading = ref(null);
+const step5Heading = ref(null);
+
+// Navigation with animation and focus management
+const nextWithAnimation = () => {
+  // Add a sliding out animation class first
+  const container = document.querySelector('.max-w-4xl');
+  if (container) {
+    container.classList.add('slide-right-out');
+    
+    // After animation completes, move to next step and slide in
+    setTimeout(() => {
+      repairStore.nextStep();
+      container.classList.remove('slide-right-out');
+      container.classList.add('slide-right-in');
+      
+      // Set focus on the heading of the new step
+      setTimeout(() => {
+        container.classList.remove('slide-right-in');
+        
+        // Focus the appropriate heading based on the current step
+        focusCurrentStepHeading();
+      }, 280); // Slightly shorter to prevent visual lag
+    }, 280); // Slightly shorter to prevent visual lag
+  } else {
+    repairStore.nextStep();
+  }
+};
+
+const previousWithAnimation = () => {
+  // Add a sliding out animation class first
+  const container = document.querySelector('.max-w-4xl');
+  if (container) {
+    container.classList.add('slide-left-out');
+    
+    // After animation completes, move to previous step and slide in
+    setTimeout(() => {
+      repairStore.previousStep();
+      container.classList.remove('slide-left-out');
+      container.classList.add('slide-left-in');
+      
+      // Set focus on the heading of the new step
+      setTimeout(() => {
+        container.classList.remove('slide-left-in');
+        
+        // Focus the appropriate heading based on the current step
+        focusCurrentStepHeading();
+      }, 280); // Slightly shorter to prevent visual lag
+    }, 280); // Slightly shorter to prevent visual lag
+  } else {
+    repairStore.previousStep();
+  }
+};
+
+// Focus the heading of the current step
+const focusCurrentStepHeading = () => {
+  switch (repairStore.currentStep) {
+    case 1:
+      if (step1Heading.value) step1Heading.value.focus();
+      break;
+    case 2:
+      if (step2Heading.value) step2Heading.value.focus();
+      break;
+    case 3:
+      if (step3Heading.value) step3Heading.value.focus();
+      break;
+    case 4:
+      if (step4Heading.value) step4Heading.value.focus();
+      break;
+    case 5:
+      if (step5Heading.value) step5Heading.value.focus();
+      break;
+  }
+};
+
+// Watch for step changes to handle focus
+watch(() => repairStore.currentStep, (newStep) => {
+  // Add a small delay to ensure DOM is updated
+  setTimeout(focusCurrentStepHeading, 50);
+});
+
+// Previous repair details options
+const previousRepairDetails = [
+  { value: 'screen', label: 'Screen/Display' },
+  { value: 'battery', label: 'Battery' },
+  { value: 'camera', label: 'Camera' },
+  { value: 'charging_port', label: 'Charging Port' },
+  { value: 'speakers', label: 'Speakers' },
+  { value: 'buttons', label: 'Buttons' },
+  { value: 'other', label: 'Other' }
+];
+
+// Toggle previous repair detail
+const togglePreviousRepairDetail = (detail) => {
+  if (!repairStore.formData.previous_repair_details) {
+    repairStore.formData.previous_repair_details = [];
+  }
+  
+  if (repairStore.formData.previous_repair_details.includes(detail)) {
+    repairStore.formData.previous_repair_details = repairStore.formData.previous_repair_details.filter(d => d !== detail);
+  } else {
+    repairStore.formData.previous_repair_details.push(detail);
+  }
+};
+
+// Handler for location selection
+const handleLocationSelection = (isFromLahore) => {
+  repairStore.formData.is_from_lahore = isFromLahore;
+  
+  // Reset related fields when changing location
+  if (!isFromLahore) {
+    repairStore.formData.needs_pickup_delivery = false;
+    repairStore.formData.address = '';
+  }
+};
 </script>
+
+<style scoped>
+/* Transition animations */
+.slide-right-out {
+  animation: slideRightOut 0.3s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.slide-right-in {
+  animation: slideRightIn 0.3s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.slide-left-out {
+  animation: slideLeftOut 0.3s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.slide-left-in {
+  animation: slideLeftIn 0.3s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+@keyframes slideRightOut {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+}
+
+@keyframes slideRightIn {
+  0% {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideLeftOut {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+}
+
+@keyframes slideLeftIn {
+  0% {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Mobile-friendly styles */
+@media (max-width: 768px) {
+  /* Make touch targets larger on mobile */
+  [role="button"], 
+  [role="checkbox"],
+  button {
+    min-height: 44px;
+  }
+  
+  /* Add bottom spacing to avoid items being hidden by virtual keyboard */
+  .max-w-4xl {
+    padding-bottom: 120px;
+    /* Use hardware acceleration for smoother animations on mobile */
+    transform: translateZ(0);
+  }
+  
+  /* Optimize animations for mobile */
+  .slide-right-out, 
+  .slide-right-in,
+  .slide-left-out,
+  .slide-left-in {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Device image styling */
+.w-24.h-24 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  margin: 0 auto;
+}
+
+.w-24.h-24 img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.2s ease, opacity 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+[role="button"]:hover .w-24.h-24 img {
+  transform: scale(1.05);
+}
+
+/* Skeleton loader styling */
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 0.375rem;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Improve visibility for SVG fallback icons */
+.w-24.h-24 svg {
+  color: #4B5563;  /* text-gray-600 */
+  width: 80%;
+  height: 80%;
+  margin: auto;
+}
+</style>

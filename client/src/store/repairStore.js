@@ -37,6 +37,7 @@ export const useRepairStore = defineStore('repair', {
     submissions: [], // for admin view
     currentSubmission: null, // For viewing a single submission
     preserveFormState: false, // Flag to preserve form state when navigating to Terms
+    lastPartialSubmissionTime: null, // Track when the last partial submission was saved
 
     // Pricing data will be fetched from API
     pricingData: {}
@@ -78,12 +79,47 @@ export const useRepairStore = defineStore('repair', {
     nextStep() {
       if (this.currentStep < this.totalSteps) {
         this.currentStep++;
+        // Save partial submission data when a user advances to the next step
+        this.savePartialSubmission();
       }
     },
     
     previousStep() {
       if (this.currentStep > 1) {
         this.currentStep--;
+      }
+    },
+    
+    // Save partial submission for analytics
+    async savePartialSubmission() {
+      // Only save if we've selected a device (step 1 completed)
+      if (!this.formData.device_id) return;
+      
+      try {
+        // Prepare data for partial submission
+        const partialData = {
+          ...this.formData,
+          last_completed_step: this.currentStep - 1, // The step we just completed
+          is_partial: true
+        };
+        
+        // Skip frequent partial submissions if they happen too quickly
+        const now = Date.now();
+        if (this.lastPartialSubmissionTime && 
+            (now - this.lastPartialSubmissionTime < 5000)) { // Don't save more often than every 5 seconds
+          console.log('Skipping partial submission - too soon after previous submission');
+          return;
+        }
+        
+        // Update the timestamp
+        this.lastPartialSubmissionTime = now;
+        
+        // Send to the partial submission endpoint
+        await api.submissions.savePartial(partialData);
+        console.log('Partial submission saved');
+      } catch (error) {
+        console.error('Error saving partial submission:', error);
+        // Don't interrupt the user flow if this fails
       }
     },
     
@@ -484,6 +520,80 @@ export const useRepairStore = defineStore('repair', {
         state.formData.problems.length > 0 &&
         state.formData.full_name &&
         state.formData.whatsapp_number &&
+        state.formData.agreed_to_terms
+      );
+    },
+
+    // New getter for Step 3 validation
+    isProblemDetailsValid: (state) => {
+      // Check for each problem type if the required options are selected
+      for (const problem of state.formData.problems) {
+        switch (problem) {
+          case 'battery':
+            if (!state.formData.battery_option) return false;
+            break;
+          case 'display':
+            if (!state.formData.display_option) return false;
+            // If battery add-on is selected, a battery option must be selected
+            if (state.formData.battery_add_on && !state.formData.bundle_battery_option) return false;
+            break;
+          case 'earpiece':
+            if (!state.formData.earpiece_option) return false;
+            // If battery add-on is selected, a battery option must be selected
+            if (state.formData.battery_add_on && !state.formData.bundle_battery_option) return false;
+            break;
+          case 'speaker':
+            if (!state.formData.speaker_option) return false;
+            // If battery add-on is selected, a battery option must be selected
+            if (state.formData.battery_add_on && !state.formData.bundle_battery_option) return false;
+            break;
+          case 'charging':
+            if (!state.formData.charging_issue_type) return false;
+            break;
+          case 'dead':
+            if (!state.formData.dead_phone_issue_type) return false;
+            break;
+          case 'other':
+            if (!state.formData.other_problem_description || 
+                state.formData.other_problem_description.trim() === '') return false;
+            break;
+        }
+      }
+      return true;
+    },
+
+    // New getter for Step 4 validation
+    isServiceHistoryValid: (state) => {
+      // First check if service history is selected
+      if (state.formData.service_history === null) return false;
+      
+      // If 'yes' is selected, check if previous repair provider is selected
+      if (state.formData.service_history === 'yes') {
+        if (!state.formData.previous_repair_by) return false;
+        
+        // If 'other' is selected for repair provider, check if details are provided
+        if (state.formData.previous_repair_by === 'other' && 
+            (!state.formData.previous_repair_other_details || 
+             state.formData.previous_repair_other_details.trim() === '')) {
+          return false;
+        }
+        
+        // For the previous_repair_details, we don't need to check anything as it's a comma-separated list
+        // and it's okay if it's empty
+      }
+      
+      return true;
+    },
+    
+    // New getter for form validation on Step 5
+    isFormValid: (state) => {
+      return !!(
+        state.formData.full_name &&
+        state.formData.whatsapp_number &&
+        state.formData.is_from_lahore !== null &&
+        // If pickup & delivery is needed, address is required
+        (state.formData.needs_pickup_delivery === false || 
+         (state.formData.needs_pickup_delivery === true && state.formData.address && state.formData.address.trim() !== '')) &&
         state.formData.agreed_to_terms
       );
     }

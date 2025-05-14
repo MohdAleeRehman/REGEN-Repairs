@@ -1,6 +1,9 @@
 const supabase = require('../config/supabase');
 
 class Submission {
+  // Expose the supabase client as a static property
+  static model = supabase;
+  
   // Get all submissions
   static async getAll() {
     const { data, error } = await supabase
@@ -104,80 +107,48 @@ class Submission {
   // Create a new submission
   static async create(submissionData) {
     try {
-      // Generate the next formatted ID
-      const nextNumber = await this.getLatestFormattedIdNumber();
-      const formattedId = `#RN-RP-IP${nextNumber}`;
+      // Format the ID as REGEN-IP followed by a number
+      let formattedId = null;
       
-      console.log(`Generating new submission with formatted ID: ${formattedId}`);
+      // Only generate a formatted ID for complete submissions
+      if (!submissionData.is_partial) {
+        const nextNumber = await this.getLatestFormattedIdNumber();
+        formattedId = `REGEN-IP${nextNumber}`;
+        console.log(`Generated formatted ID: ${formattedId}`);
+      } else {
+        // For partial submissions, use a different format to indicate it's partial
+        formattedId = `PARTIAL-${Date.now()}`;
+        console.log(`Generated partial submission ID: ${formattedId}`);
+      }
       
-      // Create a new object with formatted_id to avoid mutation of the original
-      const dataToInsert = {
+      // Add the formatted ID to the submission data
+      const dataWithFormattedId = {
         ...submissionData,
         formatted_id: formattedId
       };
       
-      // If created_at is not provided, add it
-      if (!dataToInsert.created_at) {
-        dataToInsert.created_at = new Date().toISOString();
-      }
+      console.log('Creating submission with data:', JSON.stringify(dataWithFormattedId, null, 2));
       
-      console.log('Inserting data with formatted ID:', {
-        ...dataToInsert,
-        formatted_id: formattedId
-      });
-      
-      // First insert the record
+      // Insert the submission into the database
       const { data, error } = await supabase
         .from('submissions')
-        .insert([dataToInsert])
-        .select();
+        .insert([dataWithFormattedId])
+        .select()
+        .single();
       
       if (error) {
-        console.error('Error inserting submission with formatted ID:', error);
+        console.error('Error creating submission:', error);
         throw error;
       }
       
-      if (!data || data.length === 0) {
-        console.error('No data returned after insertion');
-        throw new Error('No data returned after insertion');
-      }
+      console.log('Submission created successfully:', {
+        id: data.id,
+        formatted_id: data.formatted_id
+      });
       
-      console.log('Submission created successfully with data:', data[0]);
-      
-      // Verify the formatted ID was properly saved
-      if (!data[0].formatted_id) {
-        console.warn('Formatted ID was not saved in the database. Performing explicit update...');
-        
-        // Explicitly update the record with the formatted ID
-        const { data: updateData, error: updateError } = await supabase
-          .from('submissions')
-          .update({ formatted_id: formattedId })
-          .eq('id', data[0].id)
-          .select();
-          
-        if (updateError) {
-          console.error('Error updating formatted ID:', updateError);
-          
-          // Even if update fails, return record but with formatted ID added
-          return {
-            ...data[0],
-            formatted_id: formattedId
-          };
-        } else if (updateData && updateData.length > 0) {
-          console.log('Successfully updated formatted ID after creation:', updateData[0]);
-          return updateData[0];
-        } else {
-          console.log('Update performed but no data returned, returning original data with formatted ID');
-          return {
-            ...data[0],
-            formatted_id: formattedId
-          };
-        }
-      }
-      
-      return data[0];
+      return data;
     } catch (error) {
-      console.error('Error in Submission.create:', error);
+      console.error('Error in create submission:', error);
       throw error;
     }
   }

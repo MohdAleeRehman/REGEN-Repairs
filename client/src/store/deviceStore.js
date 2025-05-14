@@ -109,6 +109,30 @@ export const useDeviceStore = defineStore('device', {
       } finally {
         this.isLoading = false;
       }
+    },
+    
+    async uploadDeviceImage(deviceId, imageFile) {
+      this.isLoading = true;
+      this.error = null;
+      
+      try {
+        // Upload the image file using the API
+        const response = await api.devices.uploadImage(deviceId, imageFile);
+        
+        // Update the device in the local state with the new image URL
+        const index = this.devices.findIndex(d => d.id === deviceId);
+        if (index !== -1) {
+          this.devices[index].image_url = response.data.image_url;
+        }
+        
+        return response.data;
+      } catch (error) {
+        this.error = error.message || 'Failed to upload device image';
+        console.error('Error uploading device image:', error);
+        throw error;
+      } finally {
+        this.isLoading = false;
+      }
     }
   },
   

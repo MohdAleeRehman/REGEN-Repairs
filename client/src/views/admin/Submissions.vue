@@ -15,7 +15,6 @@
           <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
         </select>
-        
         <input
           type="text"
           v-model="searchQuery"

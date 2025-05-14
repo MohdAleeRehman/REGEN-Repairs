@@ -58,6 +58,18 @@ class Device {
     if (error) throw error;
     return data[0];
   }
+  
+  // Update device image URL
+  static async updateImageUrl(id, imageUrl) {
+    const { data, error } = await supabase
+      .from('devices')
+      .update({ image_url: imageUrl })
+      .eq('id', id)
+      .select();
+    
+    if (error) throw error;
+    return data[0];
+  }
 
   // Delete a device
   static async delete(id) {

@@ -60,6 +60,20 @@ export default {
     },
     seedFromCsv() {
       return apiClient.post('/devices/seed');
+    },
+    uploadImage(id, imageFile) {
+      // Create a FormData object to send the file
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      // Custom headers for file upload
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      };
+      
+      return apiClient.post(`/devices/${id}/image`, formData, config);
     }
   },
   
@@ -89,6 +103,9 @@ export default {
     },
     create(data) {
       return apiClient.post('/submissions', data);
+    },
+    savePartial(data) {
+      return apiClient.post('/submissions/partial', data);
     },
     updateStatus(id, status, additionalData = {}) {
       console.log(`API: Updating submission ${id} to status: ${status}`);

@@ -69,6 +69,12 @@ router.post('/', async (req, res, next) => {
 });
 
 /**
+ * POST /api/submissions/partial
+ * Save a partial submission
+ */
+router.post('/partial', SubmissionController.savePartialSubmission);
+
+/**
  * PATCH /api/submissions/:id/status
  * Update submission status
  */

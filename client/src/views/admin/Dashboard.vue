@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Dashboard Cards -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
       <!-- Pending Submissions Card -->
       <div class="overflow-hidden bg-white rounded-lg shadow">
         <div class="p-5">
@@ -76,6 +76,32 @@
         </div>
         <div class="px-5 py-3 bg-gray-50">
           <router-link to="/admin/submissions?status=completed" class="text-sm font-medium text-primary hover:text-blue-700">
+            View all
+          </router-link>
+        </div>
+      </div>
+
+      <!-- Partial Submissions Card -->
+      <div class="overflow-hidden bg-white rounded-lg shadow">
+        <div class="p-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="w-6 h-6 text-orange-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+            </div>
+            <div class="flex-1 w-0 ml-5">
+              <dl>
+                <dt class="text-sm font-medium text-gray-500 truncate">Partial Submissions</dt>
+                <dd>
+                  <div class="text-lg font-medium text-gray-900">{{ partialCount }}</div>
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+        <div class="px-5 py-3 bg-gray-50">
+          <router-link to="/admin/submissions?status=partial" class="text-sm font-medium text-primary hover:text-blue-700">
             View all
           </router-link>
         </div>
@@ -205,6 +231,83 @@
         </div>
       </div>
     </div>
+
+    <!-- Partial Submissions -->
+    <div class="mt-8">
+      <h2 class="text-lg font-medium text-gray-900">Partial Submissions</h2>
+      <p class="mt-1 text-sm text-gray-500">Users who started but didn't complete the form</p>
+      <div class="mt-4 overflow-hidden bg-white rounded-lg shadow">
+        <div v-if="isLoading" class="p-6 text-center">
+          <p class="text-gray-500">Loading...</p>
+        </div>
+        <div v-else-if="error" class="p-6 text-center">
+          <p class="text-red-500">{{ error }}</p>
+        </div>
+        <div v-else-if="recentPartialSubmissions.length === 0" class="p-6 text-center">
+          <p class="text-gray-500">No partial submissions found.</p>
+        </div>
+        <table v-else class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                Device
+              </th>
+              <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                Last Completed Step
+              </th>
+              <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                Problems
+              </th>
+              <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                Date
+              </th>
+              <th scope="col" class="relative px-6 py-3">
+                <span class="sr-only">View</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="submission in recentPartialSubmissions" :key="submission.id">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ getDeviceName(submission.device_id) }}</div>
+                <div v-if="submission.whatsapp_number" class="text-sm text-gray-500">
+                  {{ submission.whatsapp_number }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium">
+                  Step {{ submission.last_completed_step }} of 5
+                </div>
+                <div class="text-xs text-gray-500">
+                  {{ getStepName(submission.last_completed_step) }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div v-if="submission.problems && submission.problems.length > 0" class="text-sm text-gray-500">
+                  {{ submission.problems.join(', ') }}
+                </div>
+                <div v-else class="text-xs text-gray-400 italic">
+                  No problems selected
+                </div>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                {{ formatDate(submission.created_at) }}
+              </td>
+              <td class="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
+                <router-link :to="`/admin/submissions/${submission.id}`" class="text-primary hover:text-blue-900">
+                  View
+                </router-link>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="px-4 py-3 text-center bg-gray-50 sm:px-6">
+          <router-link to="/admin/submissions?status=partial" class="text-sm font-medium text-primary hover:text-blue-700">
+            View all partial submissions
+          </router-link>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -247,9 +350,23 @@ const completedCount = computed(() => {
   return submissions.value.filter(sub => sub.status === 'completed').length;
 });
 
-// Get recent submissions (5 most recent)
+// Count for partial submissions
+const partialCount = computed(() => {
+  return submissions.value.filter(sub => sub.status === 'partial' || sub.is_partial === true).length;
+});
+
+// Get recent submissions (5 most recent complete ones)
 const recentSubmissions = computed(() => {
   return [...submissions.value]
+    .filter(sub => sub.status !== 'partial' && !sub.is_partial)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 5);
+});
+
+// Get recent partial submissions (5 most recent partial ones)
+const recentPartialSubmissions = computed(() => {
+  return [...submissions.value]
+    .filter(sub => sub.status === 'partial' || sub.is_partial === true)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 5);
 });
@@ -266,6 +383,7 @@ const formatStatus = (status) => {
     case 'in_progress': return 'In Progress';
     case 'completed': return 'Completed';
     case 'cancelled': return 'Cancelled';
+    case 'partial': return 'Partial';
     default: return status;
   }
 };
@@ -276,6 +394,7 @@ const getStatusClass = (status) => {
     case 'in_progress': return 'bg-blue-100 text-blue-800';
     case 'completed': return 'bg-green-100 text-green-800';
     case 'cancelled': return 'bg-red-100 text-red-800';
+    case 'partial': return 'bg-orange-100 text-orange-800';
     default: return 'bg-gray-100 text-gray-800';
   }
 };
@@ -286,5 +405,18 @@ const formatDate = (dateString) => {
     month: 'short',
     day: 'numeric'
   });
+};
+
+// Get the name of the step from step number
+const getStepName = (stepNumber) => {
+  const stepNames = [
+    'Device Selection',
+    'Problem Selection',
+    'Problem Details',
+    'Service History',
+    'Contact & Terms'
+  ];
+  
+  return stepNames[stepNumber - 1] || 'Unknown Step';
 };
 </script>
