@@ -129,19 +129,18 @@
           </div>
           
           <!-- Device Image Upload -->
-          <div class="mb-6" v-if="editingDevice">
+          <div class="mb-6">
             <label class="block mb-1 text-sm font-medium text-gray-700">Device Image</label>
             
             <div class="flex items-center mt-2">
               <!-- Image Preview -->
-              <div v-if="imagePreview || editingDevice.image_url" class="relative flex-shrink-0 w-24 h-24 mr-4 border rounded-md overflow-hidden">
+              <div v-if="imagePreview || (editingDevice && editingDevice.image_url)" class="relative flex-shrink-0 w-24 h-24 mr-4 border rounded-md overflow-hidden">
                 <img 
-                  :src="imagePreview || editingDevice.image_url" 
+                  :src="imagePreview || (editingDevice && editingDevice.image_url)" 
                   alt="Device Preview" 
                   class="object-cover w-full h-full"
                 />
                 <button 
-                  v-if="imagePreview || editingDevice.image_url"
                   @click="removeImage" 
                   class="absolute top-0 right-0 p-1 text-white bg-red-500 rounded-bl-md hover:bg-red-600"
                   type="button"
@@ -166,7 +165,7 @@
                   @click="$refs.fileInput.click()"
                   class="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {{ imagePreview || editingDevice.image_url ? 'Change Image' : 'Upload Image' }}
+                  {{ imagePreview || (editingDevice && editingDevice.image_url) ? 'Change Image' : 'Upload Image' }}
                 </button>
                 <p class="mt-1 text-xs text-gray-500">JPG, PNG or GIF, Max size: 5MB</p>
               </div>
@@ -497,12 +496,16 @@ export default {
     }
     
     async function uploadDeviceImage() {
-      if (!selectedImage.value || !editingDevice.value) return;
+      if (!selectedImage.value) return;
       
       isUploadingImage.value = true;
       
       try {
-        await deviceStore.uploadDeviceImage(editingDevice.value.id, selectedImage.value);
+        if (editingDevice.value && editingDevice.value.id) {
+          await deviceStore.uploadDeviceImage(editingDevice.value.id, selectedImage.value);
+        } else {
+          console.warn('Cannot upload image: no device ID available');
+        }
         // Update local preview
         imagePreview.value = null;
         selectedImage.value = null;
@@ -542,9 +545,18 @@ export default {
         }
         
         closeModal();
+        // Refresh device list
+        await deviceStore.fetchDevices();
       } catch (error) {
         console.error('Error saving device:', error);
-        // Show error notification
+        // Check for authentication errors
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          alert('Authentication error: You must be logged in as an admin to manage devices.');
+        } else if (error.response?.data?.error) {
+          alert('Error saving device: ' + error.response.data.error);
+        } else {
+          alert('Error saving device: ' + (error.message || 'Unknown error'));
+        }
       } finally {
         isSubmitting.value = false;
       }
@@ -565,7 +577,14 @@ export default {
         showDeleteModal.value = false;
       } catch (error) {
         console.error('Error deleting device:', error);
-        // Show error notification
+        // Check for authentication errors
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          alert('Authentication error: You must be logged in as an admin to delete devices.');
+        } else if (error.response?.data?.error) {
+          alert('Error deleting device: ' + error.response.data.error);
+        } else {
+          alert('Error deleting device: ' + (error.message || 'Unknown error'));
+        }
       } finally {
         isDeleting.value = false;
       }

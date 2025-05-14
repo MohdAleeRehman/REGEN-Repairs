@@ -38,12 +38,24 @@ class Device {
 
   // Create a new device
   static async create(deviceData) {
+    // Generate a device ID if one is not provided
+    if (!deviceData.id) {
+      // Create an ID based on the model: device_iphone_11 format
+      const baseId = deviceData.model.toLowerCase().replace(/\s+/g, '_');
+      deviceData.id = `device_${baseId}`;
+      
+      console.log(`Generated device ID: ${deviceData.id} for model: ${deviceData.model}`);
+    }
+    
     const { data, error } = await supabase
       .from('devices')
       .insert([deviceData])
       .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating device:', error);
+      throw error;
+    }
     return data[0];
   }
 

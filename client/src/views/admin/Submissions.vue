@@ -39,40 +39,63 @@
         <p class="text-gray-500">No submissions found.</p>
       </div>
       <ul v-else role="list" class="divide-y divide-gray-200">
-        <li v-for="submission in filteredSubmissions" :key="submission.id">
-          <router-link :to="`/admin/submissions/${submission.id}`" class="block hover:bg-gray-50">
+        <li v-for="submission in filteredSubmissions" :key="submission.id" class="hover:bg-gray-50 transition duration-150">
+          <router-link :to="`/admin/submissions/${submission.id}`" class="block">
             <div class="px-4 py-4 sm:px-6">
               <div class="flex items-center justify-between">
-                <div class="flex items-center">
+                <div class="flex items-center space-x-3">
                   <p class="text-sm font-medium truncate text-primary">{{ submission.name }}</p>
-                  <div class="flex flex-shrink-0 ml-2">
-                    <p class="inline-flex px-2 text-xs font-semibold leading-5 rounded-full" :class="getStatusClass(submission.status)">
-                      {{ formatStatus(submission.status) }}
-                    </p>
-                  </div>
+                  <p class="inline-flex px-2 py-0.5 text-xs font-semibold leading-5 rounded-full" :class="getStatusClass(submission.status)">
+                    {{ formatStatus(submission.status) }}
+                  </p>
                 </div>
-                <div class="flex flex-shrink-0 ml-2">
-                  <p class="text-sm text-gray-500">
-                    <span v-if="submission.formatted_id" class="font-mono">{{ submission.formatted_id }}</span>
-                    <span v-else>ID: {{ submission.id }}</span>
-                    | Submitted {{ formatDate(submission.created_at) }}
+                <div class="flex flex-shrink-0">
+                  <p class="text-sm text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded">
+                    {{ submission.formatted_id || `ID: ${submission.id}` }}
                   </p>
                 </div>
               </div>
               <div class="mt-2 sm:flex sm:justify-between">
-                <div class="sm:flex">
-                  <p class="flex items-center text-sm text-gray-500">
-                    <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    {{ submission.phone }}
-                  </p>
-                  <p class="flex items-center mt-2 text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                    <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
-                    {{ getDeviceName(submission.device_id) }}
-                  </p>
+                <div class="flex items-center">
+                  <!-- Device Image in a card-like container -->
+                  <div class="mr-4 h-16 w-16 overflow-hidden border rounded-lg shadow-sm bg-white flex items-center justify-center">
+                    <img 
+                      v-if="getDeviceImage(submission.device_id)" 
+                      :src="getDeviceImage(submission.device_id)" 
+                      :alt="getDeviceName(submission.device_id)"
+                      class="h-14 w-auto object-contain"
+                      loading="lazy"
+                    />
+                    <div v-else class="h-16 w-16 bg-gray-50 flex items-center justify-center">
+                      <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="flex flex-col">
+                    <div class="flex items-center space-x-1">
+                      <svg class="flex-shrink-0 h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <span class="text-sm font-medium text-gray-800">{{ getDeviceName(submission.device_id) }}</span>
+                    </div>
+                    <div class="flex items-center space-x-1 mt-1">
+                      <svg class="flex-shrink-0 h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      <span class="text-sm text-gray-600">{{ submission.phone }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-2 sm:mt-0 text-right">
+                  <div class="flex flex-col">
+                    <div class="text-sm text-gray-500">
+                      Submitted:
+                    </div>
+                    <div class="text-sm font-medium text-gray-800">
+                      {{ formatDate(submission.created_at) }}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -149,6 +172,12 @@ const filteredSubmissions = computed(() => {
 const getDeviceName = (deviceId) => {
   const device = deviceStore.getDeviceById(deviceId);
   return device ? device.model : 'Unknown Device';
+};
+
+// Get device image from device store
+const getDeviceImage = (deviceId) => {
+  const device = deviceStore.getDeviceById(deviceId);
+  return device ? device.image_url : null;
 };
 
 const formatStatus = (status) => {

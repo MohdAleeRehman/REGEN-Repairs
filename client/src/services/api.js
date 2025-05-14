@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from './supabase';
 
 // Get the API URL from environment variables
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -15,13 +16,26 @@ const apiClient = axios.create({
 
 // Add a request interceptor for debugging
 apiClient.interceptors.request.use(
-  config => {
+  async config => {
+    // Add auth token to requests if available
+    try {
+      const session = await auth.getSession();
+      if (session?.access_token) {
+        config.headers.Authorization = `Bearer ${session.access_token}`;
+      }
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+    }
+    
     // Log every outgoing request
     console.log('API Request:', {
       method: config.method.toUpperCase(),
       url: config.url,
       data: config.data,
-      headers: config.headers,
+      headers: {
+        ...config.headers,
+        Authorization: config.headers.Authorization ? '[REDACTED]' : undefined
+      },
     });
     return config;
   },

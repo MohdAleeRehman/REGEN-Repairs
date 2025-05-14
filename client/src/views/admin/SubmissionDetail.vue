@@ -82,7 +82,23 @@
             
             <div class="px-4 py-5 bg-white sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">Device</dt>
-              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ deviceName }}</dd>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 flex items-center">
+                <!-- Device Image with enhanced styling -->
+                <div class="mr-4 h-20 w-20 flex-shrink-0 border rounded-lg shadow-sm overflow-hidden bg-white flex items-center justify-center">
+                  <img 
+                    v-if="deviceImage" 
+                    :src="deviceImage" 
+                    :alt="deviceName"
+                    class="h-16 w-auto object-contain"
+                  />
+                  <div v-else class="h-20 w-20 bg-gray-50 flex items-center justify-center">
+                    <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                </div>
+                <span class="font-medium">{{ deviceName }}</span>
+              </dd>
             </div>
             
             <div class="px-4 py-5 bg-gray-50 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -336,6 +352,12 @@ const deviceName = computed(() => {
   if (!submission.value) return '';
   const device = deviceStore.getDeviceById(submission.value.device_id);
   return device ? device.model : 'Unknown Device';
+});
+
+const deviceImage = computed(() => {
+  if (!submission.value) return null;
+  const device = deviceStore.getDeviceById(submission.value.device_id);
+  return device ? device.image_url : null;
 });
 
 const repairName = computed(() => {

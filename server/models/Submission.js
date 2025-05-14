@@ -107,13 +107,13 @@ class Submission {
   // Create a new submission
   static async create(submissionData) {
     try {
-      // Format the ID as REGEN-IP followed by a number
+      // Format the ID as #RN-PK-IP followed by a number
       let formattedId = null;
       
       // Only generate a formatted ID for complete submissions
       if (!submissionData.is_partial) {
         const nextNumber = await this.getLatestFormattedIdNumber();
-        formattedId = `REGEN-IP${nextNumber}`;
+        formattedId = `#RN-PK-IP${nextNumber}`;
         console.log(`Generated formatted ID: ${formattedId}`);
       } else {
         // For partial submissions, use a different format to indicate it's partial

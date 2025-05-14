@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const DeviceController = require('../controllers/DeviceController');
+const adminAuth = require('../middleware/adminAuth'); // Import admin auth middleware
 
 const router = express.Router();
 
@@ -38,22 +39,20 @@ router.get('/:id', DeviceController.getDeviceById);
 // GET devices by brand
 router.get('/brand/:brand', DeviceController.getDevicesByBrand);
 
+// Admin-only routes
 // POST create a new device
-router.post('/', DeviceController.createDevice);
+router.post('/', adminAuth, DeviceController.createDevice);
 
 // POST bulk import devices
-router.post('/import', DeviceController.bulkImportDevices);
+router.post('/import', adminAuth, DeviceController.bulkImportDevices);
 
 // PUT update a device
-router.put('/:id', DeviceController.updateDevice);
+router.put('/:id', adminAuth, DeviceController.updateDevice);
 
 // DELETE a device
-router.delete('/:id', DeviceController.deleteDevice);
+router.delete('/:id', adminAuth, DeviceController.deleteDevice);
 
 // POST upload device image
-router.post('/:id/image', upload.single('image'), DeviceController.uploadDeviceImage);
-
-// POST upload device image
-router.post('/:id/image', upload.single('image'), DeviceController.uploadDeviceImage);
+router.post('/:id/image', adminAuth, upload.single('image'), DeviceController.uploadDeviceImage);
 
 module.exports = router;
