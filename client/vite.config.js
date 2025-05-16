@@ -16,7 +16,12 @@ export default defineConfig({
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info'],
+        passes: 2
+      },
+      mangle: {
+        safari10: true
       }
     },
     // Split chunks for better caching
@@ -24,15 +29,31 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vue-vendor': ['vue', 'vue-router'],
+          'store': ['pinia', './src/store/authStore.js', './src/store/deviceStore.js', './src/store/repairStore.js'],
           'cloudinary': ['cloudinary-core'],
-          'form-vendor': ['lodash']
-        }
+          'chart': ['chart.js', 'vue-chartjs']
+        },
+        assetFileNames: (assetInfo) => {
+          let extType = assetInfo.name.split('.')[1];
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(extType)) {
+            extType = 'img';
+          } else if (/woff|woff2|eot|ttf|otf/i.test(extType)) {
+            extType = 'fonts';
+          }
+          return `assets/${extType}/[name]-[hash][extname]`;
+        },
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js'
       }
     },
-    // Create a source map for debugging but exclude it from production
-    sourcemap: process.env.NODE_ENV !== 'production',
+    // No source map in production for better performance
+    sourcemap: false,
     // Reduce chunking for smaller applications
-    chunkSizeWarningLimit: 600
+    chunkSizeWarningLimit: 800,
+    // Enable CSS code splitting
+    cssCodeSplit: true,
+    // Use brotli compression for better performance
+    brotliSize: false,
   },
   // Enable compression
   server: {

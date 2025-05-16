@@ -3,9 +3,9 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
-const ensureUploadsDirectory = require('./utils/ensureUploadsDir');
 
 // Create Express app
 const app = express();
@@ -38,6 +38,18 @@ try {
   // Enhanced security with helmet
   app.use(helmet({
     contentSecurityPolicy: false // Disabling CSP for now
+  }));
+
+  // Compression middleware - reduces payload size
+  app.use(compression({
+    level: 6,
+    threshold: 0,
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    }
   }));
 
   // Logging middleware
@@ -118,14 +130,6 @@ try {
   });
 
   // Start server
-  ensureUploadsDirectory();
-
-  // Add Cloudinary configuration to app locals for access in routes
-  app.locals.cloudinaryConfig = {
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dl1kjmaoq',
-    api_key: process.env.CLOUDINARY_API_KEY || '191857187442571'
-  };
-
   const server = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);

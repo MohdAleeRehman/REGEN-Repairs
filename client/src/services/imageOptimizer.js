@@ -97,16 +97,31 @@ export const optimizeCloudinaryUrl = (url, options = {}) => {
     return url;
   }
   
+  // Determine if we need to serve lower quality images based on connection
+  const isLowBandwidth = isLowBandwidthConnection();
+  
   const {
     width = 400,
     height = 400,
-    format = 'webp',
-    quality = 'auto:best',
-    dpr = isLowBandwidthConnection() ? '1.0' : '2.0'
+    format = 'auto',
+    quality = isLowBandwidth ? 'auto:eco' : 'auto:good',
+    dpr = isLowBandwidth ? '1.0' : 'auto',
+    fetchFormat = 'auto',
+    loading = 'lazy'
   } = options;
   
-  // Create transformation string
-  const transformations = `f_${format},w_${width},h_${height},c_limit,q_${quality},dpr_${dpr}`;
+  // Create transformation string with more optimizations
+  const transformations = [
+    `f_${format}`,
+    `w_${width}`,
+    `h_${height}`,
+    `c_limit`,
+    `q_${quality}`,
+    `dpr_${dpr}`,
+    'e_sharpen:60',
+    loading === 'eager' ? 'fl_progressive' : '',
+    `fetch_format_${fetchFormat}`
+  ].filter(Boolean).join(',');
   
   // Replace or add transformation parameters to the URL
   if (url.includes('/upload/')) {

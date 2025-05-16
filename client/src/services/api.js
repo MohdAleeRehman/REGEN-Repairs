@@ -4,6 +4,12 @@ import { auth } from './supabase';
 // Get the API URL from environment variables
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+// Cache for API responses
+const responseCache = new Map();
+
+// Cache timeout in milliseconds (5 minutes)
+const CACHE_TIMEOUT = 5 * 60 * 1000;
+
 // Create axios instance with base URL and default config
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -14,9 +20,38 @@ const apiClient = axios.create({
   }
 });
 
+// Helper to generate cache key from request
+const generateCacheKey = (config) => {
+  return `${config.method}:${config.url}:${JSON.stringify(config.params || {})}:${JSON.stringify(config.data || {})}`;
+};
+
+// Helper to clear expired cache entries
+const clearExpiredCache = () => {
+  const now = Date.now();
+  responseCache.forEach((value, key) => {
+    if (now > value.timestamp + CACHE_TIMEOUT) {
+      responseCache.delete(key);
+    }
+  });
+};
+
+// Periodic cache cleanup
+setInterval(clearExpiredCache, 60000);
+
 // Add a request interceptor for debugging
 apiClient.interceptors.request.use(
   async config => {
+    // Check cache for GET requests
+    if (config.method === 'get' && config.cache !== false) {
+      const key = generateCacheKey(config);
+      const cachedResponse = responseCache.get(key);
+      
+      if (cachedResponse && Date.now() < cachedResponse.timestamp + CACHE_TIMEOUT) {
+        // Return cached response by attaching it to config for later use
+        config.cachedResponse = cachedResponse.data;
+      }
+    }
+    
     // Add auth token to requests if available
     try {
       const session = await auth.getSession();
@@ -48,7 +83,25 @@ apiClient.interceptors.request.use(
 
 // Add a response interceptor for error handling
 apiClient.interceptors.response.use(
-  response => response,
+  response => {
+    // If response was already cached and used, return early
+    if (response.config.cachedResponse) {
+      response.data = response.config.cachedResponse;
+      response.fromCache = true;
+      return response;
+    }
+    
+    // For GET requests, cache the successful response
+    if (response.config.method === 'get' && response.config.cache !== false) {
+      const key = generateCacheKey(response.config);
+      responseCache.set(key, {
+        timestamp: Date.now(),
+        data: response.data
+      });
+    }
+    
+    return response;
+  },
   error => {
     console.error('API Error:', error.response || error);
     return Promise.reject(error);

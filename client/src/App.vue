@@ -4,7 +4,7 @@
       <nav class="container flex items-center justify-between px-4 py-4 mx-auto">
         <router-link to="/" class="flex items-center">
           <div class="relative w-auto h-10 overflow-hidden">
-            <img src="./assets/regen.svg" alt="REGEN Repairs" class="object-contain w-auto h-10" />
+            <img src="/assets/regen.svg" alt="REGEN Repairs" width="40" height="40" class="object-contain w-auto h-10" />
           </div>
         </router-link>
         <div class="flex gap-3">
@@ -24,29 +24,28 @@
     </main>
     
     <footer class="relative overflow-hidden text-white bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900">
-      <!-- Wave pattern overlay -->
+      <!-- Wave pattern overlay with fixed dimensions -->
       <div class="absolute inset-0 opacity-10">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" class="absolute bottom-0 w-full">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" class="absolute bottom-0 w-full h-32" width="1440" height="320" aria-hidden="true">
           <path fill="#ffffff" fill-opacity="1" d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
         </svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" class="absolute top-0 w-full rotate-180">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" class="absolute top-0 w-full h-32 rotate-180" width="1440" height="320" aria-hidden="true">
           <path fill="#ffffff" fill-opacity="1" d="M0,64L48,80C96,96,192,128,288,128C384,128,480,96,576,90.7C672,85,768,107,864,144C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
         </svg>
       </div>
       
       <div class="container relative z-10 px-6 pt-12 pb-8 mx-auto">
-        <!-- Footer top section -->
-        <div class="grid grid-cols-1 gap-8 mb-8 md:grid-cols-3 lg:grid-cols-4">
+        <!-- Footer content with dimensions -->
+        <div class="grid grid-cols-1 gap-8 mb-8 md:grid-cols-3 lg:grid-cols-4" style="min-height: 220px">
           <!-- Company info -->
           <div class="md:col-span-1 lg:col-span-1">
-  <p class="mb-4 text-sm leading-relaxed text-blue-200">
-    We provide professional iPhone repair services using premium quality parts and certified technicians. 
-    From screen replacements and battery issues to water damage and diagnostics, our team ensures fast, 
-    reliable, and affordable repairs. Customer satisfaction is our top priority, and all repairs come with 
-    a limited warranty for peace of mind.
-  </p>
-</div>
-
+            <p class="mb-4 text-sm leading-relaxed text-blue-200">
+              We provide professional iPhone repair services using premium quality parts and certified technicians. 
+              From screen replacements and battery issues to water damage and diagnostics, our team ensures fast, 
+              reliable, and affordable repairs. Customer satisfaction is our top priority, and all repairs come with 
+              a limited warranty for peace of mind.
+            </p>
+          </div>
 
           <!-- Quick Links -->
           <div>

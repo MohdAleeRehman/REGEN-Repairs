@@ -7,6 +7,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
 
@@ -41,6 +42,18 @@ try {
   // Enhanced security with helmet
   app.use(helmet({
     contentSecurityPolicy: false // Disabling CSP for now
+  }));
+
+  // Compression middleware - reduces payload size
+  app.use(compression({
+    level: 6,
+    threshold: 0,
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    }
   }));
 
   // Logging middleware

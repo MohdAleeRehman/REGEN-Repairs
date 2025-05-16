@@ -1,0 +1,10 @@
+# Allow all web crawlers
+User-agent: *
+Allow: /
+
+# Disallow admin pages
+Disallow: /admin
+Disallow: /admin/*
+
+# Sitemap
+Sitemap: https://regen.pk/sitemap.xml
