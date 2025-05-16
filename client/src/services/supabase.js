@@ -9,6 +9,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+    // Set session timeout to 4 hours (14400 seconds)
+    detectSessionInUrl: true,
+    flowType: 'implicit',
   }
 });
 
@@ -27,13 +30,23 @@ export const auth = {
   
   // Sign in a user
   async signIn(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
+      // Return a consistent structure
+      return {
+        user: data.user || null,
+        session: data.session || null
+      };
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw error;
+    }
   },
   
   // Sign out the current user
@@ -44,25 +57,40 @@ export const auth = {
   
   // Get the current user session
   async getSession() {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    return data.session;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      return data?.session || null;
+    } catch (error) {
+      console.error('Error fetching session:', error);
+      return null;
+    }
   },
   
   // Get the current user
   async getUser() {
-    const { data, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return data.user;
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data?.user || null;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return null;
+    }
   },
   
   // Check if user has admin role (based on user_metadata)
   async isAdmin() {
-    const { data, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    
-    // Check user metadata or custom claims for admin role
-    return data.user?.user_metadata?.role === 'admin';
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      
+      // Check user metadata or custom claims for admin role
+      return data?.user?.user_metadata?.role === 'admin' || false;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
   }
 };
 

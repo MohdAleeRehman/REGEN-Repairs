@@ -67,7 +67,10 @@
             <!-- Only show fields with content -->
             <div v-if="submission.name" class="px-4 py-5 bg-gray-50 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">Full name</dt>
-              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ submission.name }}</dd>
+              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 flex items-center space-x-2">
+                <ProfileAvatar :name="submission.name" size="md" />
+                <span>{{ submission.name }}</span>
+              </dd>
             </div>
             
             <div v-if="submission.phone" class="px-4 py-5 bg-white sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -272,6 +275,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useRepairStore } from '../../store/repairStore';
 import { useDeviceStore } from '../../store/deviceStore';
+import ProfileAvatar from '../../components/ui/ProfileAvatar.vue';
 import api from '../../services/api';
 import axios from 'axios';
 

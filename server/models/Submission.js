@@ -55,47 +55,50 @@ class Submission {
         }
       }
       
-      // Query for the latest submission with order by created_at
+      // Get all non-partial submissions with formatted_id that matches our pattern
       const { data, error } = await supabase
         .from('submissions')
         .select('id, formatted_id, created_at')
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .not('is_partial', 'eq', true)
+        .ilike('formatted_id', '#RN-RP-IP%')
+        .order('created_at', { ascending: false });
       
       if (error) {
-        console.error('Error fetching latest formatted ID:', error);
+        console.error('Error fetching submissions with formatted IDs:', error);
         throw error;
       }
       
-      console.log('Latest submission data:', data);
+      console.log(`Retrieved ${data ? data.length : 0} submissions with formatted IDs`);
       
       // Always start with 1321 for the first submission or if no formatted ID is found
       if (!data || data.length === 0) {
-        console.log('No submissions found in the database, starting with 1321');
+        console.log('No submissions with proper formatted IDs found, starting with 1321');
         return 1321;
       }
       
-      if (!data[0].formatted_id) {
-        console.log('Latest submission has null formatted_id, starting with 1321');
+      // Find the highest numeric part among all formatted IDs
+      let highestNumber = 0;
+      
+      for (const submission of data) {
+        if (!submission.formatted_id) continue;
+        
+        const matches = submission.formatted_id.match(/IP(\d+)$/);
+        if (!matches || !matches[1]) continue;
+        
+        const currentNumber = parseInt(matches[1], 10);
+        if (currentNumber > highestNumber) {
+          highestNumber = currentNumber;
+        }
+      }
+      
+      if (highestNumber === 0) {
+        console.log('No valid formatted IDs found, starting with 1321');
         return 1321;
       }
       
-      // Extract the numeric part from the formatted ID
-      const formattedId = data[0].formatted_id;
-      console.log('Latest formatted ID found:', formattedId);
-      
-      const matches = formattedId.match(/IP(\d+)$/);
-      
-      if (!matches || !matches[1]) {
-        // If the pattern doesn't match, start with 1321
-        console.log('Could not extract number from formatted ID, starting with 1321');
-        return 1321;
-      }
-      
-      // Parse the number and add 10 for the next ID
-      const currentNumber = parseInt(matches[1], 10);
-      const nextNumber = currentNumber + 10;
-      console.log(`Extracted number ${currentNumber}, next number will be ${nextNumber}`);
+      // Add 10 for the next ID
+      const nextNumber = highestNumber + 10;
+      console.log(`Highest ID number found: ${highestNumber}, next number will be ${nextNumber}`);
       return nextNumber;
     } catch (error) {
       console.error('Error getting latest formatted ID:', error);
@@ -107,13 +110,13 @@ class Submission {
   // Create a new submission
   static async create(submissionData) {
     try {
-      // Format the ID as #RN-PK-IP followed by a number
+      // Format the ID as #RN-RP-IP followed by a number (IP will change based on device type)
       let formattedId = null;
       
       // Only generate a formatted ID for complete submissions
       if (!submissionData.is_partial) {
         const nextNumber = await this.getLatestFormattedIdNumber();
-        formattedId = `#RN-PK-IP${nextNumber}`;
+        formattedId = `#RN-RP-IP${nextNumber}`;
         console.log(`Generated formatted ID: ${formattedId}`);
       } else {
         // For partial submissions, use a different format to indicate it's partial

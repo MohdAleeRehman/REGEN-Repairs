@@ -20,11 +20,12 @@ apiClient.interceptors.request.use(
     // Add auth token to requests if available
     try {
       const session = await auth.getSession();
-      if (session?.access_token) {
+      if (session && session.access_token) {
         config.headers.Authorization = `Bearer ${session.access_token}`;
       }
     } catch (error) {
       console.error('Error getting auth token:', error);
+      // Continue with the request even without the token
     }
     
     // Log every outgoing request

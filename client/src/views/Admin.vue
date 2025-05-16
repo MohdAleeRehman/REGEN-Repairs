@@ -24,12 +24,23 @@
               to="/admin/submissions" 
               class="px-3 py-2 rounded-md text-sm font-medium"
               :class="[
-                $route.name === 'AdminSubmissions' || $route.name === 'SubmissionDetail'  
+                ($route.name === 'AdminSubmissions' || ($route.name === 'SubmissionDetail' && !$route.query.partial)) 
                   ? 'bg-primary text-white' 
                   : 'text-gray-700 hover:bg-gray-100'
               ]"
             >
               Submissions
+            </router-link>
+            <router-link 
+              to="/admin/partial-submissions" 
+              class="px-3 py-2 rounded-md text-sm font-medium"
+              :class="[
+                $route.name === 'PartialSubmissions' || ($route.name === 'SubmissionDetail' && $route.query.partial)
+                  ? 'bg-primary text-white' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              ]"
+            >
+              Partial Forms
             </router-link>
             <router-link 
               to="/admin/devices" 

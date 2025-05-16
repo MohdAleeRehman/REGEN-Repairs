@@ -350,12 +350,21 @@ export const useRepairStore = defineStore('repair', {
       
       try {
         const response = await api.submissions.getAll();
-        this.submissions = response.data;
-        return response.data;
+        
+        // Make sure response.data is an array
+        if (Array.isArray(response.data)) {
+          this.submissions = response.data;
+        } else {
+          console.warn('Response data is not an array:', response.data);
+          this.submissions = [];
+        }
+        
+        return this.submissions;
       } catch (error) {
-        this.error = error.message || 'Failed to fetch submissions';
+        this.error = error.response?.data?.message || error.message || 'Failed to fetch submissions';
         console.error('Error fetching submissions:', error);
-        throw error;
+        this.submissions = []; // Set to empty array on error
+        return this.submissions; // Return empty array instead of throwing
       } finally {
         this.isLoading = false;
       }

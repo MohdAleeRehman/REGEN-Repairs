@@ -189,12 +189,26 @@ export const useDeviceStore = defineStore('device', {
   
   getters: {
     getDeviceById: (state) => (id) => {
-      return state.devices.find(device => device.id === id);
+      if (!id) return null;
+      if (!Array.isArray(state.devices)) return null;
+      
+      try {
+        return state.devices.find(device => device && device.id === id) || null;
+      } catch (error) {
+        console.error('Error in getDeviceById:', error);
+        return null;
+      }
     },
     
     availableDevices: (state) => {
-      // Changed to include all iPhone models including iPhone SE (2nd Gen)
-      return state.devices.filter(device => device.model.includes('iPhone'));
+      if (!Array.isArray(state.devices)) return [];
+      
+      try {
+        return state.devices.filter(device => device && device.model && device.model.includes('iPhone'));
+      } catch (error) {
+        console.error('Error in availableDevices:', error);
+        return [];
+      }
     }
   }
 });

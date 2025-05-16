@@ -49,6 +49,13 @@ const routes = [
         path: 'submissions',
         name: 'AdminSubmissions',
         component: Submissions,
+        props: { showPartial: false }
+      },
+      {
+        path: 'partial-submissions',
+        name: 'PartialSubmissions',
+        component: Submissions,
+        props: { showPartial: true }
       },
       {
         path: 'submissions/:id',
@@ -91,18 +98,22 @@ const router = createRouter({
 });
 
 // Add navigation guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
   
-  // Initialize auth state from localStorage
+  // Initialize auth state if not already done
   if (!authStore.isAuthenticated) {
-    authStore.initAuth();
+    try {
+      await authStore.initAuth();
+    } catch (error) {
+      console.error('Auth initialization failed:', error);
+    }
   }
   
   // Check if route requires authentication
   if (to.matched.some(record => record.meta.requiresAuth)) {
-    // Check if user is authenticated
-    if (!authStore.isAdmin) {
+    // Check if user is authenticated and is admin
+    if (!authStore.isAuthenticated || !authStore.isAdmin) {
       // Redirect to login page with return URL
       next({ 
         name: 'AdminLogin', 

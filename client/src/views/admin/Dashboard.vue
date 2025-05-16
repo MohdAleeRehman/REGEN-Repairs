@@ -101,7 +101,7 @@
           </div>
         </div>
         <div class="px-5 py-3 bg-gray-50">
-          <router-link to="/admin/submissions?status=partial" class="text-sm font-medium text-primary hover:text-blue-700">
+          <router-link to="/admin/partial-submissions" class="text-sm font-medium text-primary hover:text-blue-700">
             View all
           </router-link>
         </div>
@@ -163,6 +163,25 @@
       </div>
     </div>
 
+    <!-- Analytics Charts -->
+    <div class="mt-8">
+      <h2 class="text-lg font-medium text-gray-900">Analytics Overview</h2>
+      <div v-if="isLoading" class="p-6 text-center">
+        <p class="text-gray-500">Loading charts...</p>
+      </div>
+      <div v-else-if="error" class="p-6 text-center">
+        <p class="text-red-500">{{ error }}</p>
+      </div>
+      <div v-else-if="!submissions || submissions.length === 0" class="p-6 text-center">
+        <p class="text-gray-500">No data available for charts</p>
+      </div>
+      <DashboardCharts 
+        v-else 
+        :submissions="submissions"
+        :key="chartKey" 
+      />
+    </div>
+
     <!-- Recent Submissions -->
     <div class="mt-8">
       <h2 class="text-lg font-medium text-gray-900">Recent Submissions</h2>
@@ -199,13 +218,36 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="submission in recentSubmissions" :key="submission.id">
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm font-medium text-gray-900">{{ submission.name }}</div>
-                <div class="text-sm text-gray-500">{{ submission.whatsapp_number }}</div>
+                <div class="flex items-center space-x-2">
+                  <ProfileAvatar :name="submission.name || 'Unknown'" size="sm" />
+                  <div>
+                    <div class="text-sm font-medium text-gray-900">{{ submission.name }}</div>
+                    <div class="text-sm text-gray-500">{{ submission.whatsapp_number }}</div>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{{ getDeviceName(submission.device_id) }}</div>
-                <div class="text-sm text-gray-500">
-                  {{ submission.problems.join(', ') }}
+                <div class="flex items-center">
+                  <div class="h-10 w-10 flex-shrink-0 mr-3 bg-white border rounded-md overflow-hidden flex items-center justify-center">
+                    <img 
+                      v-if="getDeviceImage(submission.device_id)" 
+                      :src="getDeviceImage(submission.device_id)" 
+                      :alt="getDeviceName(submission.device_id)"
+                      class="h-8 w-auto object-contain"
+                      loading="lazy"
+                    />
+                    <div v-else class="flex items-center justify-center h-full w-full bg-gray-50">
+                      <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-sm text-gray-900">{{ getDeviceName(submission.device_id) }}</div>
+                    <div class="text-sm text-gray-500">
+                      {{ submission.problems.join(', ') }}
+                    </div>
+                  </div>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -224,10 +266,78 @@
             </tr>
           </tbody>
         </table>
-        <div class="px-4 py-3 text-center bg-gray-50 sm:px-6">
-          <router-link to="/admin/submissions" class="text-sm font-medium text-primary hover:text-blue-700">
-            View all submissions
-          </router-link>
+        <!-- Pagination Controls for Recent Submissions -->
+        <div class="px-4 py-3 bg-gray-50 sm:px-6 flex items-center justify-between">
+          <div class="flex-1 flex justify-between sm:hidden">
+            <button
+              @click="currentSubmissionsPage > 1 ? currentSubmissionsPage-- : null"
+              :disabled="currentSubmissionsPage <= 1"
+              :class="[
+                'relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md',
+                currentSubmissionsPage <= 1 ? 'text-gray-300 cursor-not-allowed' : 'text-primary hover:bg-gray-100'
+              ]"
+            >
+              Previous
+            </button>
+            <button
+              @click="currentSubmissionsPage < totalSubmissionsPages ? currentSubmissionsPage++ : null"
+              :disabled="currentSubmissionsPage >= totalSubmissionsPages"
+              :class="[
+                'relative ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md',
+                currentSubmissionsPage >= totalSubmissionsPages ? 'text-gray-300 cursor-not-allowed' : 'text-primary hover:bg-gray-100'
+              ]"
+            >
+              Next
+            </button>
+          </div>
+          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <router-link to="/admin/submissions" class="text-sm font-medium text-primary hover:text-blue-700">
+                View all submissions
+              </router-link>
+            </div>
+            <div v-if="totalSubmissionsPages > 1">
+              <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <button
+                  @click="currentSubmissionsPage > 1 ? currentSubmissionsPage-- : null"
+                  :disabled="currentSubmissionsPage <= 1"
+                  class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                  :class="{ 'cursor-not-allowed': currentSubmissionsPage <= 1 }"
+                >
+                  <span class="sr-only">Previous</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+                
+                <button
+                  v-for="page in totalSubmissionsPages"
+                  :key="'submission-page-' + page"
+                  @click="currentSubmissionsPage = page"
+                  :class="[
+                    'relative inline-flex items-center px-4 py-2 text-sm font-semibold',
+                    currentSubmissionsPage === page
+                      ? 'bg-primary text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2'
+                      : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0'
+                  ]"
+                >
+                  {{ page }}
+                </button>
+                
+                <button
+                  @click="currentSubmissionsPage < totalSubmissionsPages ? currentSubmissionsPage++ : null"
+                  :disabled="currentSubmissionsPage >= totalSubmissionsPages"
+                  class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                  :class="{ 'cursor-not-allowed': currentSubmissionsPage >= totalSubmissionsPages }"
+                >
+                  <span class="sr-only">Next</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </nav>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -269,9 +379,27 @@
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="submission in recentPartialSubmissions" :key="submission.id">
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{{ getDeviceName(submission.device_id) }}</div>
-                <div v-if="submission.whatsapp_number" class="text-sm text-gray-500">
-                  {{ submission.whatsapp_number }}
+                <div class="flex items-center">
+                  <div class="h-10 w-10 flex-shrink-0 mr-3 bg-white border rounded-md overflow-hidden flex items-center justify-center">
+                    <img 
+                      v-if="getDeviceImage(submission.device_id)" 
+                      :src="getDeviceImage(submission.device_id)" 
+                      :alt="getDeviceName(submission.device_id)"
+                      class="h-8 w-auto object-contain"
+                      loading="lazy"
+                    />
+                    <div v-else class="flex items-center justify-center h-full w-full bg-gray-50">
+                      <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="text-sm text-gray-900">{{ getDeviceName(submission.device_id) }}</div>
+                    <div v-if="submission.whatsapp_number" class="text-sm text-gray-500">
+                      {{ submission.whatsapp_number }}
+                    </div>
+                  </div>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -286,7 +414,7 @@
                 <div v-if="submission.problems && submission.problems.length > 0" class="text-sm text-gray-500">
                   {{ submission.problems.join(', ') }}
                 </div>
-                <div v-else class="text-xs text-gray-400 italic">
+                <div v-else class="text-xs italic text-gray-400">
                   No problems selected
                 </div>
               </td>
@@ -301,10 +429,78 @@
             </tr>
           </tbody>
         </table>
-        <div class="px-4 py-3 text-center bg-gray-50 sm:px-6">
-          <router-link to="/admin/submissions?status=partial" class="text-sm font-medium text-primary hover:text-blue-700">
-            View all partial submissions
-          </router-link>
+        <!-- Pagination Controls for Partial Submissions -->
+        <div class="px-4 py-3 bg-gray-50 sm:px-6 flex items-center justify-between">
+          <div class="flex-1 flex justify-between sm:hidden">
+            <button
+              @click="currentPartialPage > 1 ? currentPartialPage-- : null"
+              :disabled="currentPartialPage <= 1"
+              :class="[
+                'relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md',
+                currentPartialPage <= 1 ? 'text-gray-300 cursor-not-allowed' : 'text-primary hover:bg-gray-100'
+              ]"
+            >
+              Previous
+            </button>
+            <button
+              @click="currentPartialPage < totalPartialPages ? currentPartialPage++ : null"
+              :disabled="currentPartialPage >= totalPartialPages"
+              :class="[
+                'relative ml-3 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md',
+                currentPartialPage >= totalPartialPages ? 'text-gray-300 cursor-not-allowed' : 'text-primary hover:bg-gray-100'
+              ]"
+            >
+              Next
+            </button>
+          </div>
+          <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <router-link to="/admin/partial-submissions" class="text-sm font-medium text-primary hover:text-blue-700">
+                View all partial submissions
+              </router-link>
+            </div>
+            <div v-if="totalPartialPages > 1">
+              <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <button
+                  @click="currentPartialPage > 1 ? currentPartialPage-- : null"
+                  :disabled="currentPartialPage <= 1"
+                  class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                  :class="{ 'cursor-not-allowed': currentPartialPage <= 1 }"
+                >
+                  <span class="sr-only">Previous</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+                
+                <button
+                  v-for="page in totalPartialPages"
+                  :key="'partial-page-' + page"
+                  @click="currentPartialPage = page"
+                  :class="[
+                    'relative inline-flex items-center px-4 py-2 text-sm font-semibold',
+                    currentPartialPage === page
+                      ? 'bg-primary text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2'
+                      : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0'
+                  ]"
+                >
+                  {{ page }}
+                </button>
+                
+                <button
+                  @click="currentPartialPage < totalPartialPages ? currentPartialPage++ : null"
+                  :disabled="currentPartialPage >= totalPartialPages"
+                  class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                  :class="{ 'cursor-not-allowed': currentPartialPage >= totalPartialPages }"
+                >
+                  <span class="sr-only">Next</span>
+                  <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </nav>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -312,30 +508,74 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRepairStore } from '../../store/repairStore';
 import { useDeviceStore } from '../../store/deviceStore';
+import DashboardCharts from '../../components/ui/DashboardCharts.vue';
+import ProfileAvatar from '../../components/ui/ProfileAvatar.vue';
 
 const repairStore = useRepairStore();
 const deviceStore = useDeviceStore();
 
 const isLoading = ref(false);
 const error = ref(null);
-const submissions = ref([]);
+const submissions = ref([]);  // Initialize as empty array to ensure it's always valid
+const chartKey = ref(0); // Key to force chart re-rendering when data changes
+
+// Pagination for recent submissions
+const currentSubmissionsPage = ref(1);
+const submissionsPerPage = ref(5);
+
+// Pagination for partial submissions
+const currentPartialPage = ref(1);
+const partialPerPage = ref(5);
 
 // Fetch data
-onMounted(async () => {
+const fetchData = async () => {
   isLoading.value = true;
+  error.value = null; // Reset error state
+  
   try {
+    // Fetch devices and submissions sequentially
     await deviceStore.fetchDevices();
     await repairStore.fetchSubmissions();
-    submissions.value = repairStore.submissions;
+    
+    // Ensure submissions is always an array
+    if (Array.isArray(repairStore.submissions)) {
+      submissions.value = repairStore.submissions;
+      console.log('Dashboard: Loaded submissions:', submissions.value.length);
+    } else {
+      submissions.value = [];
+      console.warn('Repair store submissions is not an array:', repairStore.submissions);
+    }
+    
+    // Increment chart key to force re-render of charts
+    chartKey.value++;
   } catch (err) {
     error.value = err.message || 'Failed to load data';
+    console.error('Error fetching data:', err);
+    submissions.value = []; // Ensure submissions is reset to empty array on error
   } finally {
     isLoading.value = false;
   }
-});
+};
+
+onMounted(fetchData);
+
+// Refresh data when repair store submissions change
+watch(() => repairStore.submissions, (newSubmissions) => {
+  if (Array.isArray(newSubmissions)) {
+    submissions.value = newSubmissions;
+    console.log('Dashboard watch: Updated submissions', newSubmissions.length);
+  } else {
+    // If newSubmissions is not an array, set to empty array
+    submissions.value = [];
+    console.warn('Watch detected non-array submissions:', newSubmissions);
+  }
+  
+  // Increment chart key to force re-render of charts
+  chartKey.value++;
+}, { deep: true });
 
 // Calculate counts
 const pendingCount = computed(() => {
@@ -355,26 +595,52 @@ const partialCount = computed(() => {
   return submissions.value.filter(sub => sub.status === 'partial' || sub.is_partial === true).length;
 });
 
-// Get recent submissions (5 most recent complete ones)
-const recentSubmissions = computed(() => {
+// All filtered submissions (complete ones)
+const filteredSubmissions = computed(() => {
   return [...submissions.value]
     .filter(sub => sub.status !== 'partial' && !sub.is_partial)
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 5);
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 });
 
-// Get recent partial submissions (5 most recent partial ones)
-const recentPartialSubmissions = computed(() => {
+// All filtered partial submissions
+const filteredPartialSubmissions = computed(() => {
   return [...submissions.value]
     .filter(sub => sub.status === 'partial' || sub.is_partial === true)
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 5);
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+});
+
+// Pagination for recent submissions
+const totalSubmissionsPages = computed(() => Math.ceil(filteredSubmissions.value.length / submissionsPerPage.value));
+const recentSubmissions = computed(() => {
+  const start = (currentSubmissionsPage.value - 1) * submissionsPerPage.value;
+  const end = start + submissionsPerPage.value;
+  return filteredSubmissions.value.slice(start, end);
+});
+
+// Pagination for partial submissions
+const totalPartialPages = computed(() => Math.ceil(filteredPartialSubmissions.value.length / partialPerPage.value));
+const recentPartialSubmissions = computed(() => {
+  const start = (currentPartialPage.value - 1) * partialPerPage.value;
+  const end = start + partialPerPage.value;
+  return filteredPartialSubmissions.value.slice(start, end);
 });
 
 // Helper functions
 const getDeviceName = (deviceId) => {
   const device = deviceStore.getDeviceById(deviceId);
   return device ? device.model : 'Unknown Device';
+};
+
+// Get device image from device store
+const getDeviceImage = (deviceId) => {
+  if (!deviceId) return null;
+  try {
+    const device = deviceStore.getDeviceById(deviceId);
+    return device?.image_url || null;
+  } catch (error) {
+    console.error('Error getting device image:', error);
+    return null;
+  }
 };
 
 const formatStatus = (status) => {
