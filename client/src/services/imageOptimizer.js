@@ -103,31 +103,40 @@ export const optimizeCloudinaryUrl = (url, options = {}) => {
   const {
     width = 400,
     height = 400,
-    format = 'auto',
     quality = isLowBandwidth ? 'auto:eco' : 'auto:good',
     dpr = isLowBandwidth ? '1.0' : 'auto',
-    fetchFormat = 'auto',
     loading = 'lazy'
   } = options;
   
-  // Create transformation string with more optimizations
+  // Create transformation string with proper Cloudinary syntax
+  // Following Cloudinary's recommended approach
   const transformations = [
-    `f_${format}`,
     `w_${width}`,
     `h_${height}`,
     `c_limit`,
     `q_${quality}`,
     `dpr_${dpr}`,
+    'f_auto', // Let Cloudinary automatically select the best format
     'e_sharpen:60',
-    loading === 'eager' ? 'fl_progressive' : '',
-    `fetch_format_${fetchFormat}`
+    loading === 'eager' ? 'fl_progressive' : ''
   ].filter(Boolean).join(',');
   
-  // Replace or add transformation parameters to the URL
+  // Check if URL already contains transformation parameters
   if (url.includes('/upload/')) {
+    // Check if URL already has transformations
+    const uploadIndex = url.indexOf('/upload/');
+    const nextSlashIndex = url.indexOf('/', uploadIndex + 8); // 8 is the length of '/upload/'
+    
+    // If there's already a transformation string, replace it
+    if (nextSlashIndex > -1 && nextSlashIndex < url.lastIndexOf('/')) {
+      const base = url.substring(0, uploadIndex + 8); // Include '/upload/'
+      const pathAfterTransform = url.substring(url.indexOf('/', nextSlashIndex + 1));
+      return `${base}${transformations}${pathAfterTransform}`;
+    }
+    // Otherwise add the transformation
     return url.replace('/upload/', `/upload/${transformations}/`);
   } else {
-    return url;
+    return url; // Can't transform non-standard Cloudinary URLs
   }
 };
 

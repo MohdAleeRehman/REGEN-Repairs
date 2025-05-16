@@ -67,7 +67,7 @@
             <!-- Only show fields with content -->
             <div v-if="submission.name" class="px-4 py-5 bg-gray-50 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">Full name</dt>
-              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 flex items-center space-x-2">
+              <dd class="flex items-center mt-1 space-x-2 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 <ProfileAvatar :name="submission.name" size="md" />
                 <span>{{ submission.name }}</span>
               </dd>
@@ -85,17 +85,17 @@
             
             <div class="px-4 py-5 bg-white sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt class="text-sm font-medium text-gray-500">Device</dt>
-              <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 flex items-center">
+              <dd class="flex items-center mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 <!-- Device Image with enhanced styling -->
-                <div class="mr-4 h-20 w-20 flex-shrink-0 border rounded-lg shadow-sm overflow-hidden bg-white flex items-center justify-center">
+                <div class="flex items-center justify-center flex-shrink-0 w-20 h-20 mr-4 overflow-hidden bg-white border rounded-lg shadow-sm">
                   <img 
                     v-if="deviceImage" 
                     :src="deviceImage" 
                     :alt="deviceName"
-                    class="h-16 w-auto object-contain"
+                    class="object-contain w-auto h-16"
                   />
-                  <div v-else class="h-20 w-20 bg-gray-50 flex items-center justify-center">
-                    <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div v-else class="flex items-center justify-center w-20 h-20 bg-gray-50">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                   </div>
@@ -238,10 +238,10 @@
     </div>
     
     <!-- Cancellation Notes Dialog -->
-    <div v-if="showCancellationDialog" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full">
-        <h3 class="text-lg font-medium mb-4">Cancellation Notes</h3>
-        <p class="text-sm text-gray-500 mb-4">Please provide a reason for cancelling this repair.</p>
+    <div v-if="showCancellationDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-500 bg-opacity-75">
+      <div class="w-full max-w-md p-6 bg-white rounded-lg">
+        <h3 class="mb-4 text-lg font-medium">Cancellation Notes</h3>
+        <p class="mb-4 text-sm text-gray-500">Please provide a reason for cancelling this repair.</p>
         
         <textarea 
           v-model="cancellationNotes" 
@@ -250,16 +250,16 @@
           placeholder="Enter reason for cancellation..."
         ></textarea>
         
-        <div class="mt-4 flex justify-end space-x-3">
+        <div class="flex justify-end mt-4 space-x-3">
           <button 
             @click="cancelCancellation" 
-            class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
+            class="px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
             Back
           </button>
           <button 
             @click="confirmCancellation" 
-            class="px-4 py-2 bg-red-600 border border-transparent rounded-md text-sm text-white hover:bg-red-700"
+            class="px-4 py-2 text-sm text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
             :disabled="!cancellationNotes.trim()"
           >
             Confirm Cancellation

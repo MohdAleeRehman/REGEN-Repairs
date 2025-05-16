@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:prod": "NODE_ENV=production vite build",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -13,7 +14,10 @@
     "@vueuse/core": "^13.1.0",
     "axios": "^1.9.0",
     "chart.js": "^4.4.9",
+    "cloudinary-core": "^2.13.1",
+    "lodash": "^4.17.21",
     "pinia": "^3.0.2",
+    "terser": "^5.39.2",
     "vue": "^3.5.13",
     "vue-chartjs": "^5.3.2",
     "vue-router": "4"
@@ -23,6 +27,7 @@
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.3.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vite-plugin-compression": "^0.5.1"
   }
 }
