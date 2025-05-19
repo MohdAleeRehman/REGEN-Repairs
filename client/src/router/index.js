@@ -97,6 +97,37 @@ const router = createRouter({
   },
 });
 
+// Configure back gesture behavior for multi-step forms
+router.beforeResolve((to, from, next) => {
+  // If we're navigating from RepairForm to another page using swipe gesture or browser back button
+  if (from.name === 'RepairForm' && to.name !== 'RepairForm') {
+    // Check if we're in a multi-step form
+    const repairStore = window?.__pinia?.state?.value?.repair;
+    if (repairStore && repairStore.currentStep > 1) {
+      // Prevent navigation and go back one step instead
+      next(false);
+      // Get the repair store instance and go back one step
+      try {
+        const pinia = window.__pinia;
+        // Check if the store is available and has a previousStep method
+        if (pinia && pinia.state?.value?.repair) {
+          const store = pinia._s.get('repair') || pinia.state.value.repair._p?.stores?.repair;
+          if (store && typeof store.previousStep === 'function') {
+            store.previousStep();
+            
+            // Update history state to prevent confusion with the back button
+            window.history.pushState(null, '', window.location.pathname);
+          }
+        }
+      } catch (err) {
+        console.error('Error handling navigation:', err);
+      }
+      return;
+    }
+  }
+  next();
+});
+
 // Add navigation guard
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();

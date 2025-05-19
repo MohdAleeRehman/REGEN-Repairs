@@ -8,8 +8,7 @@
           </div>
         </router-link>
         <div class="flex gap-3">
-          <router-link to="/" class="px-4 py-2 text-white rounded-lg bg-gradient-to-r from-blue-500 to-blue-700">Home</router-link>
-          <router-link to="/repair-form" class="px-4 py-2 text-white rounded-lg bg-gradient-to-r from-blue-500 to-blue-700">Repair Form</router-link>
+          <router-link to="/repair-form" class="px-4 py-2 text-white rounded-lg bg-gradient-to-r from-blue-500 to-blue-700">Submit Repair</router-link>
           <!-- Admin link removed as requested - will be accessible via direct URL only -->
         </div>
       </nav>
@@ -67,7 +66,7 @@
                   <svg class="w-3 h-3 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                   </svg>
-                  Repair Form
+                  Submit Repair
                 </router-link>
               </li>
               <li>

@@ -97,14 +97,19 @@ export const optimizeCloudinaryUrl = (url, options = {}) => {
     return url;
   }
   
+  // If the URL already has our transformations, don't modify it again
+  if (url.includes('/f_auto,') && url.includes('/q_auto:')) {
+    return url;
+  }
+  
   // Determine if we need to serve lower quality images based on connection
   const isLowBandwidth = isLowBandwidthConnection();
   
   const {
     width = 400,
     height = 400,
-    quality = isLowBandwidth ? 'auto:eco' : 'auto:good',
-    dpr = isLowBandwidth ? '1.0' : 'auto',
+    quality = isLowBandwidth ? 'auto:eco' : 'auto:best',
+    dpr = isLowBandwidth ? '1.0' : '2.0',
     loading = 'lazy'
   } = options;
   
@@ -127,12 +132,21 @@ export const optimizeCloudinaryUrl = (url, options = {}) => {
     const uploadIndex = url.indexOf('/upload/');
     const nextSlashIndex = url.indexOf('/', uploadIndex + 8); // 8 is the length of '/upload/'
     
+    // Special handling for device_images folder
+    if (url.includes('/device_images/')) {
+      const baseParts = url.split('/upload/');
+      if (baseParts.length === 2) {
+        return `${baseParts[0]}/upload/${transformations}/device_images/${url.split('/device_images/')[1]}`;
+      }
+    }
+    
     // If there's already a transformation string, replace it
     if (nextSlashIndex > -1 && nextSlashIndex < url.lastIndexOf('/')) {
       const base = url.substring(0, uploadIndex + 8); // Include '/upload/'
       const pathAfterTransform = url.substring(url.indexOf('/', nextSlashIndex + 1));
       return `${base}${transformations}${pathAfterTransform}`;
     }
+    
     // Otherwise add the transformation
     return url.replace('/upload/', `/upload/${transformations}/`);
   } else {

@@ -18,7 +18,7 @@ export const useRepairStore = defineStore('repair', {
       other_problem_description: '',
       service_history: null,
       previous_repair_by: null,
-      previous_repair_details: '',
+      previous_repair_details: null,
       previous_repair_other_details: '',
       full_name: '',
       whatsapp_number: '',
@@ -329,7 +329,7 @@ export const useRepairStore = defineStore('repair', {
         other_problem_description: '',
         service_history: null,
         previous_repair_by: null,
-        previous_repair_details: '',
+        previous_repair_details: null,
         previous_repair_other_details: '',
         full_name: '',
         whatsapp_number: '',
@@ -574,23 +574,45 @@ export const useRepairStore = defineStore('repair', {
     // New getter for Step 4 validation
     isServiceHistoryValid: (state) => {
       // First check if service history is selected
-      if (state.formData.service_history === null) return false;
+      if (state.formData.service_history === null) {
+        console.log('Validation failed: service_history is null');
+        return false;
+      }
       
       // If 'yes' is selected, check if previous repair provider is selected
       if (state.formData.service_history === 'yes') {
-        if (!state.formData.previous_repair_by) return false;
+        console.log('Service history is YES, checking further conditions');
+        console.log('previous_repair_by:', state.formData.previous_repair_by);
+        console.log('previous_repair_details:', state.formData.previous_repair_details);
         
-        // If 'other' is selected for repair provider, check if details are provided
-        if (state.formData.previous_repair_by === 'other' && 
-            (!state.formData.previous_repair_other_details || 
-             state.formData.previous_repair_other_details.trim() === '')) {
+        // First check repair provider
+        if (!state.formData.previous_repair_by) {
+          console.log('Validation failed: previous_repair_by not selected');
           return false;
         }
         
-        // For the previous_repair_details, we don't need to check anything as it's a comma-separated list
-        // and it's okay if it's empty
+        // THEN check repair details
+        // Important: This must be a separate validation check to ensure both fields are selected
+        // Explicitly check if repair details are selected (null, undefined or empty string are invalid)
+        if (state.formData.previous_repair_details === null || 
+            state.formData.previous_repair_details === undefined || 
+            state.formData.previous_repair_details === '') {
+          console.log('Validation failed: previous_repair_details not selected');
+          return false;
+        }
+        
+        // If 'other' is selected for repair details, check if description is provided
+        if (state.formData.previous_repair_details === 'other' && 
+            (!state.formData.previous_repair_other_details || 
+             state.formData.previous_repair_other_details.trim() === '')) {
+          console.log('Validation failed: other details not provided');
+          return false;
+        }
+        
+        console.log('All validation passed, returning true');
       }
       
+      // If service history is not 'yes', validation passes
       return true;
     },
     

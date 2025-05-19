@@ -1,6 +1,72 @@
 <template>
   <div class="max-w-4xl p-6 mx-auto bg-white rounded-lg shadow-md">
-    <h1 class="mb-6 text-3xl font-bold text-center">iPhone Repair Request Form</h1>
+    <h1 class="mb-6 text-3xl font-bold text-center">Submit Your Repair</h1>
+    
+    <!-- Tooltip for repair info -->
+    <div 
+      v-if="activeTooltip"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      @click="activeTooltip = null"
+    >
+      <div 
+        class="relative max-w-md p-6 mx-4 bg-white rounded-lg shadow-xl"
+        @click.stop
+      >
+        <button 
+          @click="activeTooltip = null"
+          class="absolute p-1 text-gray-400 transition-colors top-2 right-2 hover:text-gray-600"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <div v-if="activeTooltip === 'oem_battery'" class="space-y-3">
+          <h3 class="mb-2 text-xl font-semibold text-primary">Original OEM Battery</h3>
+          <p>Original Equipment Manufacturer (OEM) batteries are authentic replacements sourced from Apple's supply chain or authorized providers.</p>
+          <ul class="pl-6 mt-2 space-y-1 list-disc">
+            <li>Maximum capacity retention over time</li>
+            <li>Full compatibility with iOS battery health features</li>
+            <li>1 Year warranty protection</li>
+            <li>Same quality as official Apple battery replacements</li>
+          </ul>
+        </div>
+        
+        <div v-if="activeTooltip === 'aftermarket_battery'" class="space-y-3">
+          <h3 class="mb-2 text-xl font-semibold text-primary">Aftermarket Battery</h3>
+          <p>Aftermarket batteries are high-quality third-party alternatives to OEM batteries.</p>
+          <ul class="pl-6 mt-2 space-y-1 list-disc">
+            <li>Good capacity comparable to OEM batteries</li>
+            <li>Cost-effective alternative</li>
+            <li>6 months warranty protection</li>
+            <li>May have slightly less capacity retention over extended use</li>
+          </ul>
+        </div>
+        
+        <div v-if="activeTooltip === 'oem_display'" class="space-y-3">
+          <h3 class="mb-2 text-xl font-semibold text-primary">Original OEM Display</h3>
+          <p>Original Equipment Manufacturer (OEM) displays are sourced from Apple's official supply chain.</p>
+          <ul class="pl-6 mt-2 space-y-1 list-disc">
+            <li>Perfect color accuracy and touch responsiveness</li>
+            <li>Full True Tone functionality</li>
+            <li>Maximum brightness identical to original screen</li>
+            <li>1 Year warranty protection</li>
+          </ul>
+        </div>
+        
+        <div v-if="activeTooltip === 'aftermarket_display'" class="space-y-3">
+          <h3 class="mb-2 text-xl font-semibold text-primary">Aftermarket Display</h3>
+          <p>Aftermarket displays are high-quality third-party alternatives to OEM screens.</p>
+          <ul class="pl-6 mt-2 space-y-1 list-disc">
+            <li>Good visual quality for everyday use</li>
+            <li>Cost-effective alternative</li>
+            <li>Compatible with most iPhone features</li>
+            <li>6 months warranty protection</li>
+            <li>May have minor differences in color calibration</li>
+          </ul>
+        </div>
+      </div>
+    </div>
     
     <StepIndicator 
       :steps="steps" 
@@ -9,7 +75,7 @@
     
     <!-- Step 1: Device Selection -->
     <div v-if="repairStore.currentStep === 1" class="transition-all duration-300">
-      <h2 class="mb-4 text-xl font-semibold" ref="step1Heading" tabindex="-1">Choose Your Device</h2>
+      <h2 class="mb-4 text-xl font-semibold" ref="step1Heading">Choose Your Device</h2>
       
       <div v-if="deviceStore.isLoading" class="py-10 text-center">
         <div class="inline-block w-8 h-8 border-t-2 border-b-2 rounded-full animate-spin border-primary"></div>
@@ -39,10 +105,10 @@
               'bg-white border border-gray-200 hover:bg-blue-50': repairStore.formData.device_id !== device.id
             }"
           >
-            <div class="w-24 h-24 mx-auto mb-2 relative">
+            <div class="relative w-24 h-24 mx-auto mb-2">
               <template v-if="device.image_url">
-                <div v-if="!imageLoaded[device.id]" class="absolute inset-0 bg-gray-200 animate-pulse rounded-md flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <div v-if="!imageLoaded[device.id]" class="absolute inset-0 flex items-center justify-center bg-gray-200 rounded-md animate-pulse">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
@@ -79,23 +145,6 @@
             </div>
           </div>
         </div>
-      </div>
-      
-      <div class="flex justify-end mt-6">
-        <button 
-          v-if="repairStore.isDeviceSelected"
-          @click="nextWithAnimation()"
-          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-blue-700 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
-        >
-          Continue
-        </button>
-        <button 
-          v-else
-          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-gray-400 opacity-50 cursor-not-allowed"
-          disabled
-        >
-          Select a Device
-        </button>
       </div>
     </div>
     
@@ -136,18 +185,11 @@
         </button>
         
         <button 
-          v-if="repairStore.hasProblems"
+          v-if="isProblemSelected"
           @click="nextWithAnimation()"
           class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-blue-700 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
         >
           Continue
-        </button>
-        <button 
-          v-else
-          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-gray-400 opacity-50 cursor-not-allowed"
-          disabled
-        >
-          Select at least one problem
         </button>
       </div>
     </div>
@@ -178,7 +220,17 @@
                   <line x1="7" y1="17" x2="17" y2="17"/>
                 </svg>
               </span>
-              <h4 class="text-lg font-medium" :class="{ 'text-primary': repairStore.formData.battery_option === 'OEM' }">Original OEM Battery</h4>
+              <h4 class="text-lg font-medium" :class="{ 'text-primary': repairStore.formData.battery_option === 'OEM' }">
+                Original OEM Battery
+                <span 
+                  class="inline-flex ml-1 text-blue-500 cursor-pointer hover:text-blue-600"
+                  @click.stop="showTooltip('oem_battery')"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </h4>
             </div>
             <div class="ml-10">
               <div class="text-sm text-gray-600">1 Year Warranty</div>
@@ -205,7 +257,17 @@
                   <line x1="7" y1="17" x2="17" y2="17"/>
                 </svg>
               </span>
-              <h4 class="text-lg font-medium" :class="{ 'text-primary': repairStore.formData.battery_option === 'Aftermarket' }">Aftermarket Battery</h4>
+              <h4 class="text-lg font-medium" :class="{ 'text-primary': repairStore.formData.battery_option === 'Aftermarket' }">
+                Aftermarket Battery
+                <span 
+                  class="inline-flex ml-1 text-blue-500 cursor-pointer hover:text-blue-600"
+                  @click.stop="showTooltip('aftermarket_battery')"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </h4>
             </div>
             <div class="ml-10">
               <div class="text-sm text-gray-600">6 Months Warranty</div>
@@ -238,7 +300,17 @@
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
               </span>
-              <h4 class="text-lg font-medium" :class="{ 'text-primary': repairStore.formData.display_option === 'OEM' }">Original OEM Display</h4>
+              <h4 class="text-lg font-medium" :class="{ 'text-primary': repairStore.formData.display_option === 'OEM' }">
+                Original OEM Display
+                <span 
+                  class="inline-flex ml-1 text-blue-500 cursor-pointer hover:text-blue-600"
+                  @click.stop="showTooltip('oem_display')"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </h4>
             </div>
             <div class="ml-10">
               <div class="text-sm text-gray-600">1 Year Warranty</div>
@@ -265,7 +337,17 @@
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
               </span>
-              <h4 class="text-lg font-medium" :class="{ 'text-primary': repairStore.formData.display_option === 'Aftermarket' }">Aftermarket Display</h4>
+              <h4 class="text-lg font-medium" :class="{ 'text-primary': repairStore.formData.display_option === 'Aftermarket' }">
+                Aftermarket Display
+                <span 
+                  class="inline-flex ml-1 text-blue-500 cursor-pointer hover:text-blue-600"
+                  @click.stop="showTooltip('aftermarket_display')"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                </span>
+              </h4>
             </div>
             <div class="ml-10">
               <div class="text-sm text-gray-600">6 Months Warranty</div>
@@ -746,13 +828,6 @@
         >
           Continue
         </button>
-        <button 
-          v-else
-          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-gray-400 opacity-50 cursor-not-allowed"
-          disabled
-        >
-          Complete Required Options
-        </button>
       </div>
     </div>
 
@@ -823,7 +898,10 @@
         
         <div class="grid grid-cols-1 gap-3 mb-6 sm:grid-cols-2">
           <div 
-            @click="repairStore.formData.previous_repair_by = 'apple'"
+            @click="() => { 
+              repairStore.formData.previous_repair_by = 'apple';
+              console.log('Selected repair provider: apple, repair details:', repairStore.formData.previous_repair_details);
+            }"
             class="flex items-center p-4 transition-all duration-200 border rounded-lg shadow-sm cursor-pointer"
             :class="{ 
               'bg-gradient-to-r from-blue-50 to-blue-100 border-primary': repairStore.formData.previous_repair_by === 'apple',
@@ -895,7 +973,10 @@
         
         <div class="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-3">
           <div 
-            @click="repairStore.formData.previous_repair_details = 'battery'"
+            @click="() => {
+              repairStore.formData.previous_repair_details = 'battery';
+              console.log('Selected repair details: battery, is now valid:', isServiceHistoryValid);
+            }"
             class="flex items-center p-4 transition-all duration-200 border rounded-lg shadow-sm cursor-pointer"
             :class="{ 
               'bg-gradient-to-r from-blue-50 to-blue-100 border-primary': repairStore.formData.previous_repair_details === 'battery',
@@ -912,7 +993,10 @@
           </div>
           
           <div 
-            @click="repairStore.formData.previous_repair_details = 'display'"
+            @click="() => {
+              repairStore.formData.previous_repair_details = 'display';
+              console.log('Selected repair details: display, is now valid:', isServiceHistoryValid);
+            }"
             class="flex items-center p-4 transition-all duration-200 border rounded-lg shadow-sm cursor-pointer"
             :class="{ 
               'bg-gradient-to-r from-blue-50 to-blue-100 border-primary': repairStore.formData.previous_repair_details === 'display',
@@ -929,7 +1013,10 @@
           </div>
           
           <div 
-            @click="repairStore.formData.previous_repair_details = 'other'"
+            @click="() => {
+              repairStore.formData.previous_repair_details = 'other';
+              console.log('Selected repair details: other, is now valid:', isServiceHistoryValid);
+            }"
             class="flex items-center p-4 transition-all duration-200 border rounded-lg shadow-sm cursor-pointer"
             :class="{ 
               'bg-gradient-to-r from-blue-50 to-blue-100 border-primary': repairStore.formData.previous_repair_details === 'other',
@@ -967,18 +1054,11 @@
         </button>
         
         <button 
-          v-if="repairStore.isServiceHistoryValid"
+          v-if="isServiceHistoryValid"
           @click="nextWithAnimation()"
           class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-blue-700 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
         >
           Continue
-        </button>
-        <button 
-          v-else
-          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-gray-400 opacity-50 cursor-not-allowed"
-          disabled
-        >
-          Complete Service History
         </button>
       </div>
     </div>
@@ -1134,10 +1214,9 @@
         </button>
         
         <button 
+          v-if="repairStore.isFormValid"
           @click="submitForm()"
           class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-blue-700 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
-          :disabled="!repairStore.isFormValid"
-          :class="{ 'opacity-50 cursor-not-allowed': !repairStore.isFormValid }"
         >
           Submit Request
         </button>
@@ -1147,7 +1226,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDeviceStore } from '../store/deviceStore';
 import { useRepairStore } from '../store/repairStore';
@@ -1163,8 +1242,109 @@ const imageLoaded = ref({});
 // Add new state to track if viewport is visible
 const isVisible = ref(true);
 
-// Use Intersection Observer API to detect if component is visible
+// State for the active tooltip
+const activeTooltip = ref(null);
+
+// Function to show tooltip info
+const showTooltip = (tooltipType) => {
+  activeTooltip.value = tooltipType;
+};
+const formStateKey = 'repair_form_state';
+
+// Function to save the form state to session storage
+const saveFormState = () => {
+  const state = {
+    formData: repairStore.formData,
+    currentStep: repairStore.currentStep
+  };
+  sessionStorage.setItem(formStateKey, JSON.stringify(state));
+};
+
+// Setup swipe gesture detection
+const setupSwipeGestures = () => {
+  // Variables to track swipe
+  let touchStartX = 0;
+  let touchEndX = 0;
+  const minSwipeDistance = 100; // Minimum distance required for a swipe
+  
+  // Container element to attach events to
+  const container = document.querySelector('.max-w-4xl');
+  if (!container) return;
+  
+  // Touch start event
+  const handleTouchStart = (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  };
+  
+  // Touch end event
+  const handleTouchEnd = (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+  };
+  
+  // Handle the swipe
+  const handleSwipe = () => {
+    // Minimum distance for swipe
+    if (Math.abs(touchEndX - touchStartX) < minSwipeDistance) return;
+    
+    const swipedRight = touchEndX > touchStartX;
+    
+    if (swipedRight && repairStore.currentStep > 1) {
+      // Swiped right - go back
+      previousWithAnimation();
+    } else if (!swipedRight && repairStore.currentStep < repairStore.totalSteps) {
+      // Swiped left - go forward
+      if (repairStore.canProceedToNextStep) {
+        nextWithAnimation();
+      }
+    }
+  };
+  
+  // Add event listeners
+  container.addEventListener('touchstart', handleTouchStart, { passive: true });
+  container.addEventListener('touchend', handleTouchEnd, { passive: true });
+  
+  // Remove event listeners on cleanup
+  onBeforeUnmount(() => {
+    container.removeEventListener('touchstart', handleTouchStart);
+    container.removeEventListener('touchend', handleTouchEnd);
+  });
+};
+
+// Main onMounted hook to initialize everything
 onMounted(() => {
+  // Fetch device data first
+  deviceStore.fetchDevices();
+  
+  // Restore form state if navigating with browser back button
+  const savedState = sessionStorage.getItem(formStateKey);
+  if (savedState) {
+    try {
+      const parsedState = JSON.parse(savedState);
+      if (parsedState.formData && parsedState.currentStep) {
+        repairStore.formData = parsedState.formData;
+        repairStore.currentStep = parsedState.currentStep;
+        console.log('Form state restored from session storage');
+      }
+    } catch (e) {
+      console.error('Error restoring form state:', e);
+    }
+  }
+  
+  // Initialize image loaded state from session storage
+  try {
+    const cachedImageStates = sessionStorage.getItem('regen-device-images-loaded');
+    if (cachedImageStates) {
+      const parsedState = JSON.parse(cachedImageStates);
+      Object.keys(parsedState).forEach(key => {
+        imageLoaded.value[key] = parsedState[key];
+      });
+    }
+  } catch (e) {
+    console.error('Error loading image cache:', e);
+  }
+
+  // Set up intersection observer
   if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -1179,28 +1359,25 @@ onMounted(() => {
     if (container) {
       observer.observe(container);
     }
-    
-    // Cleanup observer on component unmount
-    return () => {
-      if (container) {
-        observer.unobserve(container);
-      }
-    };
   }
+  
+  // Setup mobile swipe gesture handling for improved navigation
+  setupSwipeGestures();
+  
+  // Setup event listeners for saving form state
+  window.addEventListener('beforeunload', saveFormState);
 });
 
-// Initialize image loaded state from session storage
-onMounted(() => {
-  try {
-    const cachedImageStates = sessionStorage.getItem('regen-device-images-loaded');
-    if (cachedImageStates) {
-      const parsedState = JSON.parse(cachedImageStates);
-      Object.keys(parsedState).forEach(key => {
-        imageLoaded.value[key] = parsedState[key];
-      });
-    }
-  } catch (e) {
-    console.error('Error loading image cache:', e);
+// Cleanup on component unmount
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', saveFormState);
+  saveFormState();
+  
+  // Clean up observer if needed
+  const container = document.querySelector('.max-w-4xl');
+  if (container && window.IntersectionObserver) {
+    // This is a simplified cleanup as we don't have the observer reference here
+    // The browser will clean it up eventually when the component is destroyed
   }
 });
 
@@ -1260,6 +1437,16 @@ const selectedDevice = computed(() => {
   return deviceStore.getDeviceById(repairStore.formData.device_id);
 });
 
+// Validation for Step 1 - Device Selection
+const isDeviceSelected = computed(() => {
+  return !!repairStore.formData.device_id;
+});
+
+// Validation for Step 2 - Problem Selection
+const isProblemSelected = computed(() => {
+  return repairStore.formData.problems && repairStore.formData.problems.length > 0;
+});
+
 // Device pricing data for the selected device
 const devicePricing = computed(() => {
   if (!selectedDevice.value?.model) return null;
@@ -1271,10 +1458,8 @@ const selectDevice = (device) => {
   repairStore.updateFormField('device_id', device.id);
   deviceStore.selectDevice(device);
   
-  // Auto-navigate to next step on mobile devices
-  if (window.innerWidth < 768) { // Standard mobile breakpoint
-    nextWithAnimation();
-  }
+  // Auto-navigate to next step for all devices
+  nextWithAnimation();
 };
 
 // Format price helper
@@ -1431,12 +1616,25 @@ const preloadDeviceImages = () => {
     const secondBatch = sortedDevices.slice(firstBatchSize, firstBatchSize + 4);
     const remainingDevices = sortedDevices.slice(firstBatchSize + 4);
     
+    // Create optimized URLs for all devices once to ensure consistency
+    const optimizedUrls = new Map();
+    
+    sortedDevices.forEach(device => {
+      if (device.image_url && !optimizedUrls.has(device.id)) {
+        // Store the optimized URL in our map
+        optimizedUrls.set(device.id, imageOptimizer.optimizeCloudinaryUrl(device.image_url));
+      }
+    });
+    
+    // Apply optimized URLs to devices
+    sortedDevices.forEach(device => {
+      if (device.image_url && optimizedUrls.has(device.id)) {
+        device.image_url = optimizedUrls.get(device.id);
+      }
+    });
+    
     // Load first batch immediately with high priority
     Promise.all(firstBatch.map(device => {
-      // Optimize the URL before preloading
-      if (device.image_url) {
-        device.image_url = imageOptimizer.optimizeCloudinaryUrl(device.image_url);
-      }
       return imageOptimizer.preloadImage(device, 'high').then(success => {
         if (success) {
           imageLoaded.value[device.id] = true;
@@ -1448,10 +1646,6 @@ const preloadDeviceImages = () => {
     if (secondBatch.length > 0) {
       setTimeout(() => {
         secondBatch.forEach(device => {
-          // Optimize the URL before preloading
-          if (device.image_url) {
-            device.image_url = imageOptimizer.optimizeCloudinaryUrl(device.image_url);
-          }
           imageOptimizer.preloadImage(device, 'medium').then(success => {
             if (success) {
               imageLoaded.value[device.id] = true;
@@ -1465,10 +1659,6 @@ const preloadDeviceImages = () => {
     if (remainingDevices.length > 0) {
       setTimeout(() => {
         remainingDevices.forEach(device => {
-          // Optimize the URL before preloading
-          if (device.image_url) {
-            device.image_url = imageOptimizer.optimizeCloudinaryUrl(device.image_url);
-          }
           imageOptimizer.preloadImage(device, 'low').then(success => {
             if (success) {
               imageLoaded.value[device.id] = true;
@@ -1553,23 +1743,23 @@ const previousWithAnimation = () => {
   }
 };
 
-// Focus the heading of the current step
+// Scroll to the heading of the current step (without focusing)
 const focusCurrentStepHeading = () => {
   switch (repairStore.currentStep) {
     case 1:
-      if (step1Heading.value) step1Heading.value.focus();
+      if (step1Heading.value) step1Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
       break;
     case 2:
-      if (step2Heading.value) step2Heading.value.focus();
+      if (step2Heading.value) step2Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
       break;
     case 3:
-      if (step3Heading.value) step3Heading.value.focus();
+      if (step3Heading.value) step3Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
       break;
     case 4:
-      if (step4Heading.value) step4Heading.value.focus();
+      if (step4Heading.value) step4Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
       break;
     case 5:
-      if (step5Heading.value) step5Heading.value.focus();
+      if (step5Heading.value) step5Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
       break;
   }
 };
@@ -1579,6 +1769,43 @@ watch(() => repairStore.currentStep, (newStep) => {
   // Add a small delay to ensure DOM is updated
   setTimeout(focusCurrentStepHeading, 50);
 });
+
+// Watch for service history changes to reset dependent fields
+watch(
+  () => repairStore.formData.service_history,
+  (newVal) => {
+    // If service history is changed, reset the related fields
+    if (newVal !== 'yes') {
+      repairStore.formData.previous_repair_by = null;
+      repairStore.formData.previous_repair_details = null;
+      repairStore.formData.previous_repair_other_details = '';
+    }
+  }
+);
+
+// Watch for repair provider changes to reset repair details
+watch(
+  () => repairStore.formData.previous_repair_by,
+  (newVal, oldVal) => {
+    // Only reset if the value actually changed
+    if (newVal !== oldVal) {
+      console.log(`Repair provider changed from ${oldVal} to ${newVal}, resetting repair details`);
+      
+      // Reset to ensure user explicitly selects repair details
+      repairStore.formData.previous_repair_details = null;
+      repairStore.formData.previous_repair_other_details = '';
+    }
+  }
+);
+
+// Watch for repair details changes
+watch(
+  () => repairStore.formData.previous_repair_details,
+  (newVal, oldVal) => {
+    console.log(`Repair details changed from ${oldVal} to ${newVal}`);
+    console.log(`Validation state is now: ${isServiceHistoryValid.value ? 'valid' : 'invalid'}`);
+  }
+);
 
 // Previous repair details options
 const previousRepairDetails = [
@@ -1591,15 +1818,37 @@ const previousRepairDetails = [
   { value: 'other', label: 'Other' }
 ];
 
-// Toggle previous repair detail
-const togglePreviousRepairDetail = (detail) => {
-  if (!repairStore.formData.previous_repair_details) {
-    repairStore.formData.previous_repair_details = [];
+// Local computed property for validation
+const isServiceHistoryValid = computed(() => {
+  const { service_history, previous_repair_by, previous_repair_details, previous_repair_other_details } = repairStore.formData;
+  
+  // First check if service history is selected
+  if (service_history === null) return false;
+  
+  // If 'yes' is selected, check if previous repair provider is selected
+  if (service_history === 'yes') {
+    if (!previous_repair_by) return false;
+    
+    // Also check if repair details are selected
+    if (!previous_repair_details) return false;
+    
+    // If 'other' is selected for repair details, check if description is provided
+    if (previous_repair_details === 'other' && 
+        (!previous_repair_other_details || previous_repair_other_details.trim() === '')) {
+      return false;
+    }
   }
   
-  if (repairStore.formData.previous_repair_details.includes(detail)) {
-    repairStore.formData.previous_repair_details = repairStore.formData.previous_repair_details.filter(d => d !== detail);
-  } else {
+  return true;
+});
+
+// Toggle previous repair detail - Updated to match current implementation
+const togglePreviousRepairDetail = (detail) => {
+  // Set the detail as a string value
+  repairStore.formData.previous_repair_details = detail;
+  
+  // This function is currently unused, but updated for consistency
+  if (false) {
     repairStore.formData.previous_repair_details.push(detail);
   }
 };

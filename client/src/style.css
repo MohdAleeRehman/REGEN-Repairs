@@ -13,3 +13,27 @@ body {
 #app {
   width: 100%;
 }
+
+/* Disable hover effects on touch devices */
+@media (hover: none) {
+  .hover\:bg-gray-50:hover,
+  .hover\:bg-gray-100:hover,
+  .hover\:bg-blue-50:hover,
+  .hover\:bg-blue-700:hover,
+  .hover\:bg-red-700:hover,
+  .hover\:bg-red-100:hover,
+  .hover\:bg-red-600:hover,
+  .hover\:text-blue-700:hover,
+  .hover\:text-blue-900:hover,
+  .hover\:text-white:hover,
+  .hover\:text-primary-dark:hover,
+  .hover\:text-primary:hover,
+  .hover\:text-red-900:hover,
+  .hover\:text-green-900:hover,
+  .hover\:scale-105:hover {
+    /* Reset all hover effects on touch devices */
+    background-color: inherit !important;
+    color: inherit !important;
+    transform: none !important;
+  }
+}
