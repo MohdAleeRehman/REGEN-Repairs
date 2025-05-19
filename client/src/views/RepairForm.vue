@@ -101,8 +101,8 @@
           <div 
             class="flex flex-col items-center justify-center h-full p-4 text-center rounded-lg shadow-sm"
             :class="{ 
-              'bg-gradient-to-b from-blue-50 to-blue-100 border-2 border-primary ring-2 ring-blue-200 shadow-md': repairStore.formData.device_id === device.id,
-              'bg-white border border-gray-200 hover:bg-blue-50': repairStore.formData.device_id !== device.id
+              'bg-white border-2 border-primary ring-2 ring-gray-300 shadow-md': repairStore.formData.device_id === device.id,
+              'bg-white border border-gray-200 hover:bg-gray-100': repairStore.formData.device_id !== device.id
             }"
           >
             <div class="relative w-24 h-24 mx-auto mb-2">
@@ -164,8 +164,8 @@
           role="checkbox"
           :aria-checked="repairStore.formData.problems.includes(problem.value)"
           :class="{ 
-            'bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-primary shadow-md': repairStore.formData.problems.includes(problem.value),
-            'bg-white border border-gray-200 hover:bg-blue-50': !repairStore.formData.problems.includes(problem.value)
+            'bg-white border-2 border-primary shadow-md': repairStore.formData.problems.includes(problem.value),
+            'bg-white border border-gray-200 hover:bg-gray-100': !repairStore.formData.problems.includes(problem.value)
           }"
         >
           <div>
@@ -207,8 +207,8 @@
             @click="repairStore.formData.battery_option = 'OEM'"
             class="p-4 transition-all duration-200 border rounded-lg shadow-sm cursor-pointer"
             :class="{ 
-              'bg-gradient-to-b from-blue-50 to-blue-100 border-primary ring-2 ring-blue-200': repairStore.formData.battery_option === 'OEM',
-              'bg-white border-gray-200 hover:bg-blue-50': repairStore.formData.battery_option !== 'OEM'
+              'bg-gradient-to-b from-gray-100 to-gray-200 border-primary ring-2 ring-gray-300': repairStore.formData.battery_option === 'OEM',
+              'bg-white border-gray-200 hover:bg-gray-100': repairStore.formData.battery_option !== 'OEM'
             }"
           >
             <div class="flex items-center mb-2">
@@ -1216,9 +1216,14 @@
         <button 
           v-if="repairStore.isFormValid"
           @click="submitForm()"
-          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-blue-700 hover:scale-105 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
+          :disabled="isSubmitting"
+          class="px-6 py-3 text-white transition-transform rounded-md shadow-md bg-primary hover:bg-gray-900 hover:scale-105 focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
         >
-          Submit Request
+          <span v-if="isSubmitting" class="flex items-center justify-center">
+            <span class="inline-block w-4 h-4 mr-2 border-2 border-t-2 border-white rounded-full border-t-transparent animate-spin"></span>
+            Submitting...
+          </span>
+          <span v-else>Submit Request</span>
         </button>
       </div>
     </div>
@@ -1516,13 +1521,21 @@ const isHighPriorityDevice = (device) => {
   return highPriorityModels.some(prefix => device.model.includes(prefix));
 };
 
+// Loading state for form submission
+const isSubmitting = ref(false);
+
 // Submit form
 const submitForm = async () => {
+  if (isSubmitting.value) return; // Prevent multiple submissions
+  
+  isSubmitting.value = true;
   try {
     await repairStore.submitForm();
+    // No need to reset isSubmitting here since we're navigating away
     router.push('/success');
   } catch (error) {
     console.error('Form submission error:', error);
+    isSubmitting.value = false; // Reset state on error
     // Error handling can be improved here
   }
 };
@@ -2008,5 +2021,175 @@ const handleLocationSelection = (isFromLahore) => {
   width: 80%;
   height: 80%;
   margin: auto;
+}
+
+/* Skeleton loader styling */
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 0.375rem;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Override blue gradients with black and white styling */
+.bg-gradient-to-b.from-blue-50.to-blue-100,
+.bg-gradient-to-r.from-blue-50.to-blue-100 {
+  background-image: none !important;
+  background-color: transparent !important;
+  border-color: #333333 !important;
+  border-width: 2px !important;
+}
+
+/* Update icon backgrounds to black with white icons */
+.bg-blue-100 {
+  background-color: #333333 !important; /* Black background for icons */
+  color: white !important; /* White icon color */
+}
+
+/* Ensure SVG icons inside black backgrounds are visible */
+.bg-blue-100 svg {
+  stroke: white !important; /* Set stroke color to white */
+  color: white !important; /* Ensure the color is white */
+  fill: white !important; /* For SVGs using fill */
+}
+
+/* Target specific SVG types */
+.bg-blue-100 svg[fill="none"] {
+  stroke: white !important; /* For outline/stroke-based icons */
+}
+
+.bg-blue-100 svg[fill="currentColor"] {
+  fill: white !important; /* For filled icons */
+}
+
+/* Keep blue info icons for tooltips and info elements */
+.text-blue-500, 
+.text-blue-600, 
+.hover\:text-blue-600:hover {
+  color: #3490dc !important; /* Keep tooltip icons blue */
+}
+
+/* Ensure tooltip icons stay blue */
+.text-blue-500 svg, .text-blue-600 svg, .hover\:text-blue-600:hover svg {
+  fill: #3490dc !important;
+  color: #3490dc !important;
+  stroke: none !important;
+}
+
+/* Override primary color in text */
+.text-primary {
+  color: #333333 !important;
+}
+
+/* Override button hover styles */
+.hover\:bg-blue-50:hover {
+  background-color: #f0f0f0 !important;
+}
+
+.hover\:bg-blue-700:hover {
+  background-color: #222222 !important;
+}
+
+/* Style all continue/next buttons with consistent styling */
+button.bg-primary {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+}
+
+button.bg-primary.hover\:bg-blue-700:hover {
+  background-color: #222222 !important;
+}
+
+/* Make the focus rings match the new theme */
+.focus\:ring-blue-300:focus {
+  --tw-ring-color: rgba(150, 150, 150, 0.6) !important;
+}
+
+/* Override ring colors */
+.ring-blue-200,
+.ring-blue-300,
+.focus\:ring-blue-300 {
+  --tw-ring-color: rgba(200, 200, 200, 0.6) !important;
+}
+
+/* Override focus ring colors */
+.focus\:ring-2.focus\:ring-blue-300 {
+  --tw-ring-color: rgba(100, 100, 100, 0.6) !important;
+}
+
+/* Background colors for primary elements */
+.bg-primary {
+  background-color: #333333 !important;
+}
+
+/* Exception for radio buttons and checkboxes where bg-primary should be preserved */
+.border-2.rounded-full.bg-primary,
+.border-2.rounded-md.bg-primary {
+  background-color: #333333 !important;
+}
+
+/* Ensure checkbox icons are white */
+.border-primary.bg-primary svg, 
+.border-primary.bg-primary.text-white svg {
+  fill: white !important;
+  color: white !important;
+  stroke: none !important;
+}
+
+/* Override bundle selection styles */
+.bg-gradient-to-r.from-green-50.to-blue-50 {
+  background-image: none !important;
+  background-color: transparent !important;
+  border-color: #333333 !important;
+  border-width: 2px !important;
+}
+
+/* Text for discounts */
+.text-green-600 {
+  color: #38c172 !important; /* Keep discount text green for visibility */
+}
+
+/* Info and warning banners */
+.bg-yellow-50 {
+  background-color: #f8f8f8 !important;
+}
+
+.text-yellow-800 {
+  color: #666666 !important;
+}
+
+.border-yellow-100 {
+  border-color: #dddddd !important;
+}
+
+/* Error messages */
+.text-red-600,
+.bg-red-50 {
+  background-color: #f8f8f8 !important;
+  color: #333333 !important;
+  border-color: #dddddd !important;
+}
+
+/* Ensure focused state of buttons has transparent background */
+.bg-gradient-to-b.from-blue-50.to-blue-100:focus,
+.bg-gradient-to-r.from-blue-50.to-blue-100:focus {
+  background-image: none !important;
+  background-color: transparent !important;
+}
+
+/* Main action buttons (continue, submit) should still be black */
+button.bg-primary {
+  background-color: #333333 !important;
+  color: #ffffff !important;
 }
 </style>

@@ -59,7 +59,7 @@
     <!-- Mobile-only visible active step label -->
     <div class="mt-2 text-center sm:hidden">
       <span 
-        class="inline-block px-2 py-1 text-sm font-semibold rounded-full text-primary bg-blue-50"
+        class="inline-block px-2 py-1 text-sm font-semibold border border-gray-300 rounded-full text-primary"
       >
         {{ steps[currentStep - 1] }}
       </span>
@@ -123,5 +123,23 @@ defineProps({
     padding-left: 0.25rem;
     padding-right: 0.25rem;
   }
+}
+
+/* Override primary color and blue ring colors */
+.bg-primary {
+  background-color: #333333 !important;
+}
+
+.text-primary {
+  color: #333333 !important;
+}
+
+.ring-blue-100,
+.ring-blue-200 {
+  --tw-ring-color: rgba(210, 210, 210, 0.6) !important;
+}
+
+.bg-blue-50 {
+  background-color: #f0f0f0 !important;
 }
 </style>
