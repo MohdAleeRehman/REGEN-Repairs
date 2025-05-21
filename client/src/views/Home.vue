@@ -169,8 +169,8 @@
     </div>
 
     <!-- CTA Section -->
-    <div class="bg-green-100 rounded-3xl">
-      <div class="px-6 mx-auto text-center py-18 max-w-7xl sm:py-20 lg:px-8">
+    <div class="mb-12 bg-green-100 rounded-3xl md:rounded-xl">
+      <div class="px-4 py-12 mx-auto text-center md:px-6 max-w-7xl sm:py-16 lg:py-20 lg:px-8">
         <h2 class="text-3xl font-bold tracking-tight text-black sm:text-4xl">
           Ready to get your iPhone fixed?
         </h2>
