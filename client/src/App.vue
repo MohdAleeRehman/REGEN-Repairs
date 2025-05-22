@@ -35,13 +35,11 @@
       
       <div class="container relative z-10 px-6 pt-12 pb-8 mx-auto">
         <!-- Footer content with dimensions -->
-        <div class="grid grid-cols-1 gap-8 mb-8 md:grid-cols-3 lg:grid-cols-4" style="min-height: 170px">
+        <div class="grid grid-cols-1 gap-8 mb-8 md:grid-cols-3 lg:grid-cols-4" style="min-height: 180px">
           <!-- Company info -->
           <div class="md:col-span-1 lg:col-span-1">
             <p class="mb-4 text-sm leading-relaxed text-gray-100">
-              We provide professional iPhone repair services using premium quality parts and certified technicians. 
-              From screen replacements and battery issues to water damage and diagnostics, our team ensures fast, 
-              reliable, and affordable repairs. Customer satisfaction is our top priority, and all repairs come with 
+              We provide professional iPhone repair services using premium quality parts and certified technicians. Customer satisfaction is our top priority, and all repairs come with 
               a limited warranty for peace of mind.
             </p>
           </div>
