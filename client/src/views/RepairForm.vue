@@ -207,8 +207,8 @@
             @click="repairStore.formData.battery_option = 'OEM'"
             class="p-4 transition-all duration-200 border rounded-lg shadow-sm cursor-pointer"
             :class="{ 
-              'bg-gradient-to-b from-gray-100 to-gray-200 border-primary ring-2 ring-gray-300': repairStore.formData.battery_option === 'OEM',
-              'bg-white border-gray-200 hover:bg-gray-100': repairStore.formData.battery_option !== 'OEM'
+              'bg-gradient-to-b from-blue-50 to-blue-100 border-primary ring-2 ring-blue-200': repairStore.formData.battery_option === 'OEM',
+              'bg-white border-gray-200 hover:bg-blue-50': repairStore.formData.battery_option !== 'OEM'
             }"
           >
             <div class="flex items-center mb-2">
@@ -1198,8 +1198,8 @@
           </div>
           <div>
             <span class="font-medium">I agree with the</span>
-            <router-link to="/terms" target="_blank" class="ml-1 text-primary hover:underline">
-              Terms & Conditions
+            <router-link to="/terms" target="_blank" class="ml-1 text-blue-500 hover:underline">
+            Terms & Conditions
             </router-link>
           </div>
         </div>
@@ -1243,6 +1243,9 @@ const repairStore = useRepairStore();
 
 // Track image loading state for each device with reactive ref
 const imageLoaded = ref({});
+
+// Add scroll position tracking for each step
+const stepScrollPositions = ref({1: 0, 2: 0, 3: 0, 4: 0, 5: 0});
 
 // Add new state to track if viewport is visible
 const isVisible = ref(true);
@@ -1376,6 +1379,13 @@ onMounted(() => {
 // Cleanup on component unmount
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', saveFormState);
+  
+  // Clean up scroll handler with proper reference
+  if (repairStore.scrollHandler) {
+    window.removeEventListener('scroll', repairStore.scrollHandler);
+    delete repairStore.scrollHandler;
+  }
+  
   saveFormState();
   
   // Clean up observer if needed
@@ -1464,6 +1474,8 @@ const selectDevice = (device) => {
   deviceStore.selectDevice(device);
   
   // Auto-navigate to next step for all devices
+  // First, ensure we scroll to the top
+  window.scrollTo({ top: 0, behavior: 'auto' });
   nextWithAnimation();
 };
 
@@ -1596,6 +1608,20 @@ onMounted(() => {
     setFocusToCurrentStep();
   }
   
+  // Initialize scroll position for step 1
+  stepScrollPositions.value[1] = 0;
+  
+  // Setup scroll position tracking
+  const handleScroll = () => {
+    // Save current scroll position for the current step
+    stepScrollPositions.value[repairStore.currentStep] = window.scrollY;
+  };
+  
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  
+  // Save reference to cleanup function
+  repairStore.scrollHandler = handleScroll;
+  
   // Preload device images
   preloadDeviceImages();
 });
@@ -1692,10 +1718,12 @@ watch(() => deviceStore.devices, (newDevices) => {
   }
 }, { immediate: true });
 
-// Set focus to the appropriate heading based on current step
+// Set focus to the top of the form
 const setFocusToCurrentStep = () => {
-  // Use the same logic as focusCurrentStepHeading
-  setTimeout(focusCurrentStepHeading, 50);
+  // Use the same logic as focusCurrentStepHeading - scroll to top of form
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, 50);
 };
 
 // References for focus management
@@ -1705,8 +1733,14 @@ const step3Heading = ref(null);
 const step4Heading = ref(null);
 const step5Heading = ref(null);
 
+// Store scroll positions for each step to enable returning to the correct position
+// These are already declared at the top of the script section
+
 // Navigation with animation and focus management
 const nextWithAnimation = () => {
+  // Save current scroll position before navigation
+  stepScrollPositions.value[repairStore.currentStep] = window.scrollY;
+  
   // Add a sliding out animation class first
   const container = document.querySelector('.max-w-4xl');
   if (container) {
@@ -1722,18 +1756,23 @@ const nextWithAnimation = () => {
       setTimeout(() => {
         container.classList.remove('slide-right-in');
         
-        // Focus the appropriate heading based on the current step
+        // Ensure we properly scroll to the top when moving forward
         focusCurrentStepHeading();
       }, 280); // Slightly shorter to prevent visual lag
     }, 280); // Slightly shorter to prevent visual lag
   } else {
     repairStore.nextStep();
+    focusCurrentStepHeading();
   }
 };
 
 const previousWithAnimation = () => {
   // Add a sliding out animation class first
   const container = document.querySelector('.max-w-4xl');
+  
+  // Remember the step we're going back to
+  const goingToStep = repairStore.currentStep - 1;
+  
   if (container) {
     container.classList.add('slide-left-out');
     
@@ -1743,37 +1782,57 @@ const previousWithAnimation = () => {
       container.classList.remove('slide-left-out');
       container.classList.add('slide-left-in');
       
-      // Set focus on the heading of the new step
+      // After animation completes, restore previous scroll position
       setTimeout(() => {
         container.classList.remove('slide-left-in');
         
-        // Focus the appropriate heading based on the current step
-        focusCurrentStepHeading();
+        // When going back, restore to the saved scroll position
+        if (stepScrollPositions.value[goingToStep] !== undefined) {
+          window.scrollTo({
+            top: stepScrollPositions.value[goingToStep],
+            behavior: 'auto'
+          });
+        }
       }, 280); // Slightly shorter to prevent visual lag
     }, 280); // Slightly shorter to prevent visual lag
   } else {
     repairStore.previousStep();
+    
+    // Restore the scroll position even without animations
+    if (stepScrollPositions.value[goingToStep] !== undefined) {
+      window.scrollTo({
+        top: stepScrollPositions.value[goingToStep],
+        behavior: 'auto'
+      });
+    }
   }
 };
 
-// Scroll to the heading of the current step (without focusing)
+// Scroll to the top of the form where "Submit Your Repair" is located
 const focusCurrentStepHeading = () => {
-  switch (repairStore.currentStep) {
-    case 1:
-      if (step1Heading.value) step1Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      break;
-    case 2:
-      if (step2Heading.value) step2Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      break;
-    case 3:
-      if (step3Heading.value) step3Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      break;
-    case 4:
-      if (step4Heading.value) step4Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      break;
-    case 5:
-      if (step5Heading.value) step5Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      break;
+  // For consistent behavior, always scroll to the very top of the form
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  
+  // No need to focus individual step headings as we want to scroll to the very top
+  // The following code is kept for reference but won't be executed
+  if (false) {
+    switch (repairStore.currentStep) {
+      case 1:
+        if (step1Heading.value) step1Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      case 2:
+        if (step2Heading.value) step2Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      case 3:
+        if (step3Heading.value) step3Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      case 4:
+        if (step4Heading.value) step4Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+      case 5:
+        if (step5Heading.value) step5Heading.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        break;
+    }
   }
 };
 

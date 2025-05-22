@@ -16,7 +16,7 @@
             </span>
             1. Repair Services
           </h2>
-          <p class="text-gray-700">REGEN Repairs offers professional iPhone repair services. By submitting a repair request, you acknowledge that you have read, understood, and agree to be bound by these terms and conditions.</p>
+          <p class="text-gray-700">REGEN offers professional iPhone repair services. By submitting a repair request, you acknowledge that you have read, understood, and agree to be bound by these terms and conditions.</p>
         </section>
         
         <section class="mb-8">
@@ -66,8 +66,8 @@
             </span>
             5. Data and Backup
           </h2>
-          <p class="text-gray-700">REGEN Repairs is not responsible for any data loss that may occur during the repair process. It is your responsibility to back up all data before submitting your device for repair.</p>
-          <p class="mt-2 text-gray-700">We recommend making a complete backup of your device before sending it for repair. REGEN Repairs does not perform data backup or recovery services.</p>
+          <p class="text-gray-700">REGEN is not responsible for any data loss that may occur during the repair process. It is your responsibility to back up all data before submitting your device for repair.</p>
+          <p class="mt-2 text-gray-700">We recommend making a complete backup of your device before sending it for repair. REGEN does not perform data backup or recovery services.</p>
         </section>
         
         <section class="mb-8">
@@ -102,7 +102,7 @@
             </span>
             7. Unclaimed Devices
           </h2>
-          <p class="text-gray-700">Repaired devices must be claimed within 30 days of notification that the repair is complete. REGEN Repairs is not responsible for devices left unclaimed for more than 30 days and may charge storage fees.</p>
+          <p class="text-gray-700">Repaired devices must be claimed within 30 days of notification that the repair is complete. REGEN is not responsible for devices left unclaimed for more than 30 days and may charge storage fees.</p>
         </section>
         
         <section class="mb-8">
@@ -114,7 +114,7 @@
             </span>
             8. Privacy Policy
           </h2>
-          <p class="text-gray-700">REGEN Repairs respects your privacy and will only use your personal information for communication regarding your repair service. We will not share your information with third parties except as required to complete your repair service.</p>
+          <p class="text-gray-700">REGEN respects your privacy and will only use your personal information for communication regarding your repair service. We will not share your information with third parties except as required to complete your repair service.</p>
         </section>
         
         <section class="mb-8">
@@ -126,7 +126,7 @@
             </span>
             9. Limitation of Liability
           </h2>
-          <p class="text-gray-700">REGEN Repairs' liability is limited to the cost of the repair service. We are not responsible for any indirect, incidental, or consequential damages arising from the use of our services.</p>
+          <p class="text-gray-700">REGEN' liability is limited to the cost of the repair service. We are not responsible for any indirect, incidental, or consequential damages arising from the use of our services.</p>
         </section>
         
         <section class="mb-8">
@@ -138,19 +138,11 @@
             </span>
             10. Changes to Terms
           </h2>
-          <p class="text-gray-700">REGEN Repairs reserves the right to modify these terms and conditions at any time. Changes will be effective immediately upon posting on our website.</p>
+          <p class="text-gray-700">REGEN reserves the right to modify these terms and conditions at any time. Changes will be effective immediately upon posting on our website.</p>
         </section>
       </div>
     </div>
     
-    <div class="pb-8 mt-8 text-center">
-      <router-link to="/repair-form" class="flex items-center px-8 py-3 mx-auto text-white transition-colors rounded-md shadow-md bg-primary hover:bg-gray-600 w-fit">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-        </svg>
-        Back to Repair Form
-      </router-link>
-    </div>
   </div>
 </template>
 
